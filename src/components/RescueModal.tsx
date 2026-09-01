@@ -12,9 +12,11 @@ import {
   Flame,
   Volume2,
   VolumeX,
-  Sparkles
+  Sparkles,
+  Headphones
 } from 'lucide-react';
-import { RescueSession } from '../types';
+import { RescueSession, AudioGuide } from '../types';
+import { AUDIO_GUIDES } from '../data/mockData';
 import { soundEngine } from '../utils/soundEngine';
 import { speechEngine } from '../utils/speechEngine';
 
@@ -22,12 +24,14 @@ interface RescueModalProps {
   session: RescueSession | null;
   onClose: () => void;
   onCompleteSession: (sessionId: string) => void;
+  onOpenAudioGuide?: (guide: AudioGuide) => void;
 }
 
 export const RescueModal: React.FC<RescueModalProps> = ({
   session,
   onClose,
   onCompleteSession,
+  onOpenAudioGuide,
 }) => {
   if (!session) return null;
 
@@ -315,21 +319,43 @@ export const RescueModal: React.FC<RescueModalProps> = ({
               )}
             </div>
           ) : (
-            /* Completed Celebration Screen */
+            /* Completed Celebration Screen (4. 自動導流至對應音訊) */
             <div className="space-y-6 py-6 animate-in zoom-in-95 duration-300">
-              <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 mx-auto">
-                <CheckCircle2 className="w-10 h-10" />
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 mx-auto">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-white">太棒了，完成練習！</h3>
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-bold text-white">練習完成，心緒已平穩</h3>
                 <p className="text-xs text-slate-300 max-w-md mx-auto">
                   你剛剛成功給了大腦一段平靜的時間。深呼吸，感謝自己願意停下腳步照顧內心。
                 </p>
               </div>
-              <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300 max-w-sm mx-auto">
-                🌿 <span className="font-semibold text-emerald-300">臨床心理學小錦囊：</span>
-                當感到情緒再度緊繃時，隨時可以重溫這個練習，讓身心回到安全的基準線。
-              </div>
+
+              {/* 4. 自動導流：深度調適｜聆聽對應音訊導引 */}
+              {(() => {
+                const matchedAudio = AUDIO_GUIDES.find(a => a.category === session.category) || AUDIO_GUIDES[0];
+                return (
+                  <div className="p-4 rounded-2xl bg-slate-800/80 border border-emerald-500/30 text-xs text-slate-200 max-w-md mx-auto space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-emerald-400">
+                      <Headphones className="w-4 h-4" />
+                      <span>深度調適｜聆聽對應音訊導引</span>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed text-left">
+                      推薦搭配臨床心理師語音：<strong className="text-white">{matchedAudio.title}</strong>
+                    </p>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        if (onOpenAudioGuide) onOpenAudioGuide(matchedAudio);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Headphones className="w-3.5 h-3.5" />
+                      <span>立即聆聽專屬音訊導引</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -372,7 +398,7 @@ export const RescueModal: React.FC<RescueModalProps> = ({
           ) : (
             <button
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all cursor-pointer"
             >
               返回首頁
             </button>

@@ -13,22 +13,25 @@ import {
   Clock,
   Shield,
   Search,
-  ChevronDown
+  ChevronDown,
+  Headphones
 } from 'lucide-react';
-import { JournalTemplate, JournalEntry, JournalCategory } from '../types';
-import { JOURNAL_TEMPLATES } from '../data/mockData';
+import { JournalTemplate, JournalEntry, JournalCategory, AudioGuide } from '../types';
+import { JOURNAL_TEMPLATES, AUDIO_GUIDES } from '../data/mockData';
 import { soundEngine } from '../utils/soundEngine';
 
 interface JournalModalProps {
   initialTemplateId?: string;
   onClose: () => void;
   onSaveEntry: (entry: JournalEntry) => void;
+  onOpenAudioGuide?: (guide: AudioGuide) => void;
 }
 
 export const JournalModal: React.FC<JournalModalProps> = ({
   initialTemplateId,
   onClose,
   onSaveEntry,
+  onOpenAudioGuide,
 }) => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
     initialTemplateId || JOURNAL_TEMPLATES[0].id
@@ -257,21 +260,48 @@ export const JournalModal: React.FC<JournalModalProps> = ({
               </div>
             </form>
           ) : (
-            <div className="p-8 text-center space-y-6 animate-in zoom-in-95 duration-300">
+            <div className="p-6 sm:p-8 text-center space-y-5 animate-in zoom-in-95 duration-300">
               <div className="w-16 h-16 rounded-full bg-[#E9F0E8] text-[#8BA888] flex items-center justify-center mx-auto shadow-xs border border-[#C9D6C8]">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-[#2C3324]">日記已妥善保存！</h3>
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-bold text-[#2C3324]">日記已妥善保存</h3>
                 <p className="text-xs text-[#7A7D73] max-w-md mx-auto leading-relaxed">
-                  每一次真誠的內在書寫，都是在給予心靈最深層的梳理與療癒。你的文字已安全加密存儲。
+                  感謝你願意花時間梳理內在思緒。文字已被安全存儲。
                 </p>
               </div>
+
+              {/* 4. 自動導流：深度調適｜聆聽對應音訊導引 */}
+              {(() => {
+                const matchedAudio = AUDIO_GUIDES.find(a => a.category === currentTemplate.category) || AUDIO_GUIDES[0];
+                return (
+                  <div className="p-4 rounded-2xl bg-[#F4F8F3] border border-[#C9D6C8] text-xs text-[#2C3324] max-w-md mx-auto space-y-3">
+                    <div className="flex items-center gap-2 font-bold text-[#2C3324]">
+                      <Headphones className="w-4 h-4 text-[#8BA888]" />
+                      <span>深度調適｜聆聽對應音訊導引</span>
+                    </div>
+                    <p className="text-[#5A6352] leading-relaxed text-left">
+                      推薦搭配臨床心理師語音：<strong className="text-[#2C3324]">{matchedAudio.title}</strong>
+                    </p>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        if (onOpenAudioGuide) onOpenAudioGuide(matchedAudio);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Headphones className="w-3.5 h-3.5" />
+                      <span>立即聆聽專屬音訊導引</span>
+                    </button>
+                  </div>
+                );
+              })()}
+
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-[#2C3324] hover:bg-[#3D4035] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
-                完成並返回
+                完成並關閉
               </button>
             </div>
           )}

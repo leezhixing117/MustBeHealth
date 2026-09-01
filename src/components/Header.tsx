@@ -107,35 +107,35 @@ export const Header: React.FC<HeaderProps> = ({
             </nav>
           </div>
 
-          {/* Core Quick Funnel Navigation (全域固定快捷導航) */}
-          <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-[#F1F5EF] border border-[#E8E6E0] rounded-2xl shadow-xs">
+          {/* Core Quick Funnel Navigation (全域固定快捷導航 5.1規範) */}
+          <div className="hidden md:flex items-center gap-1 px-3 py-1.5 bg-[#F1F5EF] border border-[#E8E6E0] rounded-2xl shadow-2xs">
             <button
               onClick={() => {
                 onTabChange('home');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#2C3324] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
+              className="px-2.5 py-1 rounded-xl text-xs font-bold text-[#2C3324] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
             >
               心情簽到
             </button>
             <span className="text-[#C9D6C8] text-xs">|</span>
             <button
               onClick={() => onTabChange('rescue')}
-              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#5A6352] hover:text-[#2C3324] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
+              className="px-2.5 py-1 rounded-xl text-xs font-bold text-[#5A6352] hover:text-[#2C3324] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
             >
-              即時急救工具
+              急救工具
             </button>
             <span className="text-[#C9D6C8] text-xs">|</span>
             <button
               onClick={() => onTabChange('audio-guides')}
-              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#8BA888] hover:text-[#6d8c6a] hover:bg-white hover:shadow-xs transition-all cursor-pointer flex items-center gap-1"
+              className="px-2.5 py-1 rounded-xl text-xs font-bold text-[#8BA888] hover:text-[#6d8c6a] hover:bg-white hover:shadow-xs transition-all cursor-pointer flex items-center gap-1"
             >
               <span>🎧 音訊導引</span>
             </button>
             <span className="text-[#C9D6C8] text-xs">|</span>
             <button
               onClick={() => onTabChange('care')}
-              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#C88A58] hover:text-[#a0683a] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
+              className="px-2.5 py-1 rounded-xl text-xs font-bold text-[#C88A58] hover:text-[#a0683a] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
             >
               治療師轉介
             </button>

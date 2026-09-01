@@ -437,13 +437,13 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
           </div>
         </div>
 
-        {/* 3.1 播放 50% 觸發的輕量溫和浮動轉介通知 */}
+        {/* 3.1 播放 50% 觸發的輕量溫和浮動轉介通知 (文案精準精簡) */}
         {show50ReferralBanner && !isCompleted && !isReferralModalOpen && (
           <div className="bg-gradient-to-r from-[#2C3324] to-[#37402E] border-b border-[#8BA888]/40 px-4 py-2.5 flex items-center justify-between gap-2 text-xs animate-in slide-in-from-top duration-300">
             <div className="flex items-center gap-2 text-[#E9F0E8] min-w-0">
               <span className="w-2 h-2 rounded-full bg-[#8BA888] animate-ping shrink-0" />
-              <span className="truncate">
-                💡 這段音訊可紓解短期情緒，若長期受困於壓力、焦慮，可了解專業治療師深度協助
+              <span className="truncate font-medium">
+                短期情緒可自我調適，長期壓力焦慮可尋求專業治療師協助
               </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -459,7 +459,7 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
               <button
                 onClick={() => setShow50ReferralBanner(false)}
                 className="p-1 text-[#A0A398] hover:text-white cursor-pointer"
-                title="關閉提示"
+                title="關閉"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -789,40 +789,34 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
               )}
             </div>
           ) : (
-            /* 3.2 播放 100% 完結：頁內強化轉介模組 */
+            /* 3.2 播放 100% 完結：頁內強化轉介模組 (3.2 規範) */
             <div className="text-center py-6 space-y-5 bg-[#1C2216] rounded-3xl border border-[#8BA888]/40 p-6 sm:p-8 shadow-xl">
               <div className="w-16 h-16 rounded-full bg-[#8BA888]/20 border border-[#8BA888] flex items-center justify-center mx-auto text-[#8BA888]">
                 <Award className="w-8 h-8 animate-pulse" />
               </div>
               <div className="space-y-1.5">
                 <h3 className="text-xl font-bold text-white">
-                  {isEnglish ? 'Audio Guidance & Action Complete' : '音訊導引與行動練習圓滿完成'}
+                  {isEnglish ? 'Audio Guidance Complete' : '音訊導引圓滿完成'}
                 </h3>
-                <p className="text-xs text-[#8BA888] font-semibold">
-                  Audio Guide Completed · Action Items Solidified
-                </p>
                 <p className="text-xs text-[#C9D6C8] max-w-md mx-auto pt-1 leading-relaxed">
                   {isEnglish 
-                    ? 'You have completed this guided session and anchored your micro-actions. Carry this clarity and inner steady strength into your day.'
-                    : '你已經成功聆聽並完成了專屬支持行動。帶著這份由內而外的清晰度與堅定力量，繼續從容面對日常。'}
+                    ? 'You have completed this guided session. Carry this clarity and inner calm into your day.'
+                    : '你已完成本次音訊導引。深呼吸，帶著這份平靜與穩定力量面對日常。'}
                 </p>
               </div>
 
               {/* 核心轉介模組卡片 */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-[#242A1E] to-[#2C3324] border border-[#8BA888]/50 text-left max-w-lg mx-auto space-y-3 shadow-md">
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-[#242A1E] to-[#2C3324] border border-[#8BA888]/50 text-left max-w-lg mx-auto space-y-2.5 shadow-md">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#8BA888]">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>✅ 已完成心理師音訊導引 · 深度諮詢推薦</span>
+                  <span>✅ 已完成音訊導引｜長期情緒、職場、人際困擾，可媒合專長治療師深度梳理</span>
                 </div>
-                <p className="text-xs text-[#E9F0E8] leading-relaxed">
-                  自我練習僅能緩解短期情緒，若長期面臨情緒、睡眠、職場或人際困擾，可透過專業治療師深度梳理。
+                <p className="text-xs text-[#C9D6C8] leading-relaxed">
+                  自我練習有助於短期情緒調適。若面臨長期困擾，外部認證臨床/諮商心理師可提供一對一深度支持。
                 </p>
-                <div className="flex items-center justify-between pt-1 text-[11px] text-[#A0A398]">
-                  <span>📋 精準媒合對應專長臨床心理師 / 諮商心理師</span>
-                </div>
               </div>
 
-              {/* 固定雙按鈕：【瀏覽/預約諮詢】【探索其他音訊】 */}
+              {/* 固定雙按鈕：【預約諮詢】【探索其他音訊】 */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-md mx-auto">
                 <button
                   onClick={() => {
@@ -832,7 +826,7 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
                   className="flex-1 py-3 rounded-2xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-md shadow-[#8BA888]/20 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>瀏覽 / 預約諮詢</span>
+                  <span>預約諮詢</span>
                 </button>
                 <button
                   onClick={() => {

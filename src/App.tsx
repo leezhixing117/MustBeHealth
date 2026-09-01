@@ -360,6 +360,7 @@ export default function App() {
           session={activeRescueSession}
           onClose={() => setActiveRescueSession(null)}
           onCompleteSession={handleCompleteRescue}
+          onOpenAudioGuide={(guide) => setActiveAudioGuideForModal(guide)}
         />
       )}
 
@@ -369,6 +370,7 @@ export default function App() {
           lessonIndex={activePathForModal.lessonIndex}
           onClose={() => setActivePathForModal(null)}
           onCompleteLesson={handleCompleteLesson}
+          onOpenAudioGuide={(guide) => setActiveAudioGuideForModal(guide)}
         />
       )}
 
@@ -386,6 +388,7 @@ export default function App() {
           initialTemplateId={journalModalTemplateId}
           onClose={() => setIsJournalModalOpen(false)}
           onSaveEntry={handleSaveJournalEntry}
+          onOpenAudioGuide={(guide) => setActiveAudioGuideForModal(guide)}
         />
       )}
 

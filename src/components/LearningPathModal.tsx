@@ -17,7 +17,8 @@ import {
   VolumeX,
   Headphones
 } from 'lucide-react';
-import { LearningPath, LearningPathLesson } from '../types';
+import { LearningPath, LearningPathLesson, AudioGuide } from '../types';
+import { AUDIO_GUIDES } from '../data/mockData';
 import { soundEngine } from '../utils/soundEngine';
 import { speechEngine, VoiceTone } from '../utils/speechEngine';
 
@@ -26,6 +27,7 @@ interface LearningPathModalProps {
   lessonIndex: number;
   onClose: () => void;
   onCompleteLesson: (pathId: string, lessonId: string) => void;
+  onOpenAudioGuide?: (guide: AudioGuide) => void;
 }
 
 export const LearningPathModal: React.FC<LearningPathModalProps> = ({
@@ -33,6 +35,7 @@ export const LearningPathModal: React.FC<LearningPathModalProps> = ({
   lessonIndex,
   onClose,
   onCompleteLesson,
+  onOpenAudioGuide,
 }) => {
   if (!path) return null;
 
@@ -280,27 +283,53 @@ export const LearningPathModal: React.FC<LearningPathModalProps> = ({
               )}
             </div>
           ) : (
-            /* Lesson Finished Card */
-            <div className="text-center py-8 space-y-6 animate-in zoom-in-95 duration-300 max-w-md mx-auto">
-              <div className="w-20 h-20 rounded-full bg-[#E9F0E8] text-[#8BA888] flex items-center justify-center mx-auto shadow-xs border border-[#C9D6C8]">
-                <CheckCircle2 className="w-10 h-10" />
+            /* Lesson Finished Card (4. 自動導流至對應音訊) */
+            <div className="text-center py-6 space-y-5 animate-in zoom-in-95 duration-300 max-w-md mx-auto">
+              <div className="w-16 h-16 rounded-full bg-[#E9F0E8] text-[#8BA888] flex items-center justify-center mx-auto shadow-xs border border-[#C9D6C8]">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-[#2C3324]">今日學習已完成！</h3>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-[#2C3324]">今日學習已完成！</h3>
                 <p className="text-xs text-[#7A7D73] leading-relaxed">
-                  恭喜你完成了第 {lesson.dayNumber} 天的課程：<br />
-                  <span className="font-semibold text-[#8BA888]">{lesson.title}</span>
+                  完成了第 {lesson.dayNumber} 天課程：<span className="font-semibold text-[#8BA888]">{lesson.title}</span>
                 </p>
               </div>
-              <div className="p-4 rounded-2xl bg-[#E9F0E8] border border-[#C9D6C8] text-xs text-[#2C3324] text-left space-y-1.5">
+
+              <div className="p-3.5 rounded-2xl bg-[#F9F8F4] border border-[#E8E6E0] text-xs text-[#2C3324] text-left space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-[#2C3324]">
-                  <CheckSquare className="w-4 h-4 text-[#8BA888]" />
-                  <span>今日核心收穫總結：</span>
+                  <CheckSquare className="w-3.5 h-3.5 text-[#8BA888]" />
+                  <span>核心收穫：</span>
                 </div>
-                <p className="text-[#3D4035] leading-relaxed">
+                <p className="text-[#5A6352] leading-relaxed">
                   {lesson.summary}
                 </p>
               </div>
+
+              {/* 4. 自動導流：深度調適｜聆聽對應音訊導引 */}
+              {(() => {
+                const matchedAudio = AUDIO_GUIDES.find(a => a.category === path.category) || AUDIO_GUIDES[0];
+                return (
+                  <div className="p-4 rounded-2xl bg-[#F4F8F3] border border-[#C9D6C8] text-xs text-[#2C3324] max-w-md mx-auto space-y-2.5">
+                    <div className="flex items-center gap-2 font-bold text-[#2C3324]">
+                      <Headphones className="w-4 h-4 text-[#8BA888]" />
+                      <span>深度調適｜聆聽對應音訊導引</span>
+                    </div>
+                    <p className="text-[#5A6352] leading-relaxed text-left">
+                      推薦搭配臨床心理師語音：<strong className="text-[#2C3324]">{matchedAudio.title}</strong>
+                    </p>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        if (onOpenAudioGuide) onOpenAudioGuide(matchedAudio);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Headphones className="w-3.5 h-3.5" />
+                      <span>立即聆聽專屬音訊導引</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

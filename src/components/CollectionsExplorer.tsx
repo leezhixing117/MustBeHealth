@@ -422,14 +422,14 @@ export const CollectionsExplorer: React.FC<CollectionsExplorerProps> = ({
                 </div>
               </div>
 
-              {/* Card Footer / Action Bar: 新增【🎧 聆聽對應音訊導引】CTA */}
+              {/* Card Footer / Action Bar: 新增【🎧 聆聽對應音訊】CTA (1.4規範) */}
               <div className="p-4 bg-[#F9F8F4] border-t border-[#E8E6E0] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                 <span className="text-[11px] text-[#7A7D73] font-medium truncate max-w-[200px] hidden sm:inline">
                   {col.clinicalOutcome}
                 </span>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  {/* CTA 1: 聆聽對應音訊導引 */}
+                  {/* CTA 1: 聆聽對應音訊 */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -444,7 +444,7 @@ export const CollectionsExplorer: React.FC<CollectionsExplorerProps> = ({
                     className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-[#E9F0E8] hover:bg-[#8BA888] text-[#2C3324] hover:text-white text-xs font-bold transition-all border border-[#C9D6C8] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     <Headphones className="w-3.5 h-3.5" />
-                    <span>🎧 聆聽對應音訊導引</span>
+                    <span>🎧 聆聽對應音訊</span>
                   </button>
 
                   {/* CTA 2: 探索專題 */}

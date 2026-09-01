@@ -115,40 +115,40 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
     });
   };
 
-  // 根據心情精準匹配 1 個急救工具 + 1 個臨床音訊導引
+  // 根據心情精準匹配 1 個急救工具 + 1 個臨床音訊導引 (極簡無冗字)
   const getRecommendation = (mood: MoodType) => {
     switch (mood) {
       case 'stressed': {
         const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-stress-deadline') || ALL_AUDIO_GUIDES[0];
         return {
-          title: '🌿 壓力緩解策略 · 雙向調適建議',
-          advice: '你現在的大腦可能正處於高度緊繃的警覺狀態。給自己 2~5 分鐘，先透過生理急救降溫，再聆聽心理師音訊導引重奪掌控感。',
+          title: '🌿 壓力緩解 · 即刻調適建議',
+          advice: '大腦目前處於緊繃狀態。建議先透過 2 分鐘呼吸法生理降溫，再聆聽心理師音訊導引。',
           rescueId: 'rescue-breathe-478',
           rescueTitle: '4-7-8 焦慮急救呼吸法 (2分鐘)',
           audioGuide: audio,
-          audioTitle: '🎧 應對高壓死線與壓迫感 (臨床音訊 8分鐘)',
+          audioTitle: '應對高壓死線與壓迫感 (8分鐘)',
         };
       }
       case 'down': {
         const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-self-compassion-harsh') || ALL_AUDIO_GUIDES[1] || ALL_AUDIO_GUIDES[0];
         return {
-          title: '💙 接納當下低落 · 溫柔自癒方案',
-          advice: '低落的情緒也是身體在提醒你需要休息。不必急著強顏歡笑，允許自己此刻停下腳步，讓溫暖的聲音陪你。',
+          title: '💙 低落接納 · 溫柔自癒方案',
+          advice: '允許自己此刻停下腳步，透過自我慈悲練習與溫暖音訊陪伴自己。',
           rescueId: 'rescue-criticism-shield',
           rescueTitle: '自我慈悲與批評盾牌法 (3分鐘)',
           audioGuide: audio,
-          audioTitle: '🎧 停止內在嚴厲批判：給疲憊靈魂的慈悲導引 (9分鐘)',
+          audioTitle: '停止內在嚴厲批判：自我慈悲導引 (9分鐘)',
         };
       }
       case 'okay': {
         const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-anxiety-racing-thoughts') || ALL_AUDIO_GUIDES[2] || ALL_AUDIO_GUIDES[0];
         return {
           title: '🌱 平穩定心 · 沉澱思緒計畫',
-          advice: '在日常的平和中花幾分鐘進行正念梳理，能為大腦建立更強大的抗壓緩衝區。',
+          advice: '花幾分鐘進行正念梳理，平息思緒過度運轉。',
           rescueId: 'rescue-procrastination-2min',
           rescueTitle: '2分鐘微行動破除停滯 (2分鐘)',
           audioGuide: audio,
-          audioTitle: '🎧 平息大腦過度運轉與反芻思維 (7分鐘)',
+          audioTitle: '平息大腦過度運轉與反芻思維 (7分鐘)',
         };
       }
       case 'good':
@@ -156,25 +156,25 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
         const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-boundaries-guilt-free') || ALL_AUDIO_GUIDES[3] || ALL_AUDIO_GUIDES[0];
         return {
           title: '✨ 能量賦能 · 鞏固心理界線',
-          advice: '趁著身心狀態良好，練習鞏固清晰的心理界線與感恩練習，讓這份正向力量延續到生活中。',
+          advice: '狀態良好時，適合練習清晰的心理界線，延續內在平穩。',
           rescueId: 'rescue-anxiety-somatic-shaking',
           rescueTitle: '正向活力身體重啟 (2分鐘)',
           audioGuide: audio,
-          audioTitle: '🎧 勇於拒絕不內疚：堅定自我界線導引 (8分鐘)',
+          audioTitle: '堅定自我界線導引 (8分鐘)',
         };
       }
     }
   };
 
   return (
-    <div className="p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E6E0] shadow-xs">
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-5 sm:p-6 rounded-3xl bg-white border border-[#E8E6E0] shadow-xs">
+      <div className="flex items-center justify-between mb-3.5">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-[#2C3324]">
             {t.dailyMoodCheckIn}
           </h2>
           <p className="text-xs text-[#5A6352]">
-            {t.moodSubtitle}
+            10 秒覺察當下身心狀態 · 自動匹配專屬調適
           </p>
         </div>
         <div className="w-8 h-8 rounded-full bg-[#E9F0E8] flex items-center justify-center text-[#8BA888]">

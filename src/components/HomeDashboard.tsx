@@ -105,21 +105,21 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-10">
-      {/* 1. Welcome Greeting Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* 1. Welcome Greeting Banner (精簡去冗字、清爽直觀) */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#2C3324] bg-[#E9F0E8] border border-[#C9D6C8] px-2.5 py-0.5 rounded-full">
+            <span className="text-[11px] font-bold text-[#2C3324] bg-[#E9F0E8] border border-[#C9D6C8] px-2.5 py-0.5 rounded-full">
               🌿 每日身心陪伴
             </span>
-            <span className="text-xs text-[#7A7D73]">
+            <span className="text-[11px] text-[#7A7D73]">
               {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-TW', { weekday: 'long', month: 'long', day: 'numeric' })}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#2C3324] tracking-tight">
-            {t.goodAfternoon}, Alex <span className="font-normal text-[#7A7D73] text-xl">👋</span>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#2C3324] tracking-tight">
+            {t.goodAfternoon}, Alex <span className="font-normal text-[#7A7D73] text-lg">👋</span>
           </h1>
-          <p className="text-xs sm:text-sm text-[#5A6352] mt-1">
+          <p className="text-xs text-[#5A6352] mt-0.5">
             {t.welcomeSubtitle}
           </p>
         </div>
@@ -131,7 +131,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               analytics.track('assessment_start');
               onOpenAssessment();
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F9F8F4] border border-[#E8E6E0] shadow-xs text-xs font-semibold text-[#3D4035] transition-all cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F9F8F4] border border-[#E8E6E0] shadow-2xs text-xs font-semibold text-[#3D4035] transition-all cursor-pointer"
           >
             <Activity className="w-4 h-4 text-[#8BA888]" />
             <span>心理狀態自評 (GAD/PHQ)</span>
@@ -152,31 +152,28 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         todayRecord={todayMoodRecord}
       />
 
-      {/* 3. 【黃金視野重點置頂】🎧 臨床心理師音訊導引｜即時情緒調適 (工具 + 音訊雙入口) */}
-      <div className="space-y-4 p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#F4F8F3] via-white to-[#FAF6F0] border border-[#C9D6C8] shadow-xs">
+      {/* 3. 【黃金視野重點置頂】🎧 臨床心理師音訊導引｜情緒調適陪伴 (工具 + 音訊雙入口) */}
+      <div className="space-y-4 p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#F4F8F3] via-white to-[#FAF6F0] border border-[#C9D6C8] shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11px] font-bold text-[#2C3324] bg-[#E9F0E8] px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-[#8BA888]/40 shadow-2xs">
                 <Headphones className="w-3.5 h-3.5 text-[#8BA888]" />
-                黃金焦點 · 即時心理支持
-              </span>
-              <span className="text-[11px] text-[#7A7D73] font-medium hidden sm:inline">
-                臨床實證語音 · 邊聽邊做 · 溫和專業轉介
+                黃金焦點 · 情緒調適
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-extrabold text-[#2C3324] tracking-tight flex items-center gap-2">
-              <span>🎧 臨床心理師音訊導引｜即時情緒調適</span>
+            <h2 className="text-base sm:text-lg font-extrabold text-[#2C3324] tracking-tight flex items-center gap-2">
+              <span>🎧 臨床心理師音訊導引｜情緒調適陪伴</span>
             </h2>
             <p className="text-xs text-[#5A6352] mt-0.5">
-              由專業臨床心理學家親自錄製，在 7-10 分鐘內帶你進行神經生理降溫與認知重塑。
+              專業臨床心理師語音陪伴，7-10 分鐘即刻神經降溫與認知梳理。
             </p>
           </div>
           <button
             onClick={() => onTabChange('audio-guides')}
             className="text-xs font-bold text-[#8BA888] hover:text-[#6d8c6a] flex items-center gap-1 cursor-pointer shrink-0 self-start sm:self-auto"
           >
-            <span>瀏覽全部 40+ 音訊</span>
+            <span>全部 40+ 音訊</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -189,11 +186,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 analytics.track('audio_start', { guideId: guide.id, from: 'home_golden_spotlight' });
                 onOpenAudioGuide ? onOpenAudioGuide(guide) : onTabChange('audio-guides');
               }}
-              className="p-5 rounded-3xl bg-white border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer"
+              className="p-4 sm:p-5 rounded-3xl bg-white border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer"
             >
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-[#E9F0E8] text-[#2C3324]">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-[#E9F0E8] text-[#2C3324]">
                     {guide.categoryLabel}
                   </span>
                   <span className="text-[11px] text-[#7A7D73] font-semibold flex items-center gap-1">
@@ -205,10 +202,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                   <h3 className="font-bold text-sm text-[#2C3324] group-hover:text-[#8BA888] transition-colors leading-snug">
                     {guide.title}
                   </h3>
-                  <p className="text-[11px] text-[#7A7D73] font-medium mt-0.5 line-clamp-1">
-                    {guide.titleEn}
-                  </p>
-                  <p className="text-xs text-[#5A6352] mt-1.5 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-[#5A6352] mt-1 line-clamp-1">
                     {guide.subtitle}
                   </p>
                 </div>
@@ -218,10 +212,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 </div>
               </div>
 
-              <div className="pt-4 flex items-center justify-between text-xs text-[#2C3324] font-bold">
+              <div className="pt-3 flex items-center justify-between text-xs text-[#2C3324] font-bold">
                 <span className="text-[#8BA888] flex items-center gap-1">
                   <Headphones className="w-3.5 h-3.5" />
-                  <span>🎧 立即聆聽導引</span>
+                  <span>🎧 立即聆聽</span>
                 </span>
                 <div className="w-7 h-7 rounded-full bg-[#F1F5EF] group-hover:bg-[#8BA888] group-hover:text-white flex items-center justify-center transition-colors">
                   <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
