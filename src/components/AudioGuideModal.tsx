@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   X, 
@@ -20,22 +20,31 @@ import {
   Award,
   UserCheck,
   ShieldCheck,
-  Globe
+  Globe,
+  Send,
+  Calendar,
+  Phone,
+  MessageSquare,
+  AlertCircle,
+  Headphones
 } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { soundEngine } from '../utils/soundEngine';
 import { speechEngine, VoiceLang, convertToCantoneseSpoken } from '../utils/speechEngine';
+import { analytics } from '../utils/analytics';
 
 interface AudioGuideModalProps {
   guide: AudioGuide | null;
   onClose: () => void;
   onComplete?: (id: string) => void;
+  onOpenOtherGuides?: () => void;
 }
 
 export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
   guide,
   onClose,
   onComplete,
+  onOpenOtherGuides,
 }) => {
   if (!guide) return null;
 
@@ -50,6 +59,17 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+
+  // 50% progress subtle referral banner state
+  const [hasTriggered50Percent, setHasTriggered50Percent] = useState(false);
+  const [show50ReferralBanner, setShow50ReferralBanner] = useState(false);
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+
+  // Referral simple booking form fields (3 fields: name, contact, concern)
+  const [referralName, setReferralName] = useState('');
+  const [referralContact, setReferralContact] = useState('');
+  const [referralConcern, setReferralConcern] = useState(guide.title || '');
+  const [isReferralSubmitted, setIsReferralSubmitted] = useState(false);
   
   // Interactive "Act On" checked items & notes
   const [checkedActions, setCheckedActions] = useState<Record<number, boolean>>({});
@@ -59,7 +79,21 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
   const currentChapter = guide.chapters[currentChapterIndex];
   const totalChapters = guide.chapters.length;
 
-  // Spoken voice narration function with English support
+  // Calculate total seconds and elapsed seconds
+  const totalDurationSeconds = useMemo(() => {
+    return guide.chapters.reduce((acc, chp) => acc + chp.durationSeconds, 0);
+  }, [guide]);
+
+  // Initial event track
+  useEffect(() => {
+    analytics.track('audio_start', {
+      guideId: guide.id,
+      title: guide.title,
+      durationMinutes: guide.durationMinutes,
+    });
+  }, [guide.id]);
+
+  // Spoken voice narration function with multilingual support
   const playChapterVoice = (chapterIdx: number, speed: number, vLang: VoiceLang = voiceLang) => {
     const chapter = guide.chapters[chapterIdx];
     if (!chapter || isVoiceMuted) return;
@@ -119,6 +153,18 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
     };
   }, [guide.id, guide.soundType, currentChapterIndex, isVoiceMuted, voiceLang]);
 
+  // Check 50% progress trigger
+  useEffect(() => {
+    if (!hasTriggered50Percent && !isCompleted) {
+      const progressFraction = (currentChapterIndex + 1) / totalChapters;
+      if (progressFraction >= 0.5) {
+        setHasTriggered50Percent(true);
+        setShow50ReferralBanner(true);
+        analytics.track('audio_progress_50', { guideId: guide.id });
+      }
+    }
+  }, [currentChapterIndex, totalChapters, hasTriggered50Percent, isCompleted, guide.id]);
+
   // Chapter timer countdown
   useEffect(() => {
     if (!isPlaying || isCompleted) return;
@@ -144,6 +190,7 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
               spread: 90,
               origin: { y: 0.5 },
             });
+            analytics.track('audio_complete', { guideId: guide.id });
             if (onComplete) onComplete(guide.id);
             return 0;
           }
@@ -299,306 +346,267 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
     ? guide.actionItemsEn 
     : (isCantonese && guide.actionItemsCantonese ? guide.actionItemsCantonese : guide.actionItems);
 
-  const keyTakeawayText = isEnglish && guide.keyTakeawayEn 
-    ? guide.keyTakeawayEn 
+  const keyTakeawayText = isEnglish 
+    ? (guide.keyTakeawayEn || guide.keyTakeaway) 
     : (isCantonese && guide.keyTakeawayCantonese ? guide.keyTakeawayCantonese : guide.keyTakeaway);
 
+  // Referral Submit Handler
+  const handleReferralSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!referralName.trim() || !referralContact.trim()) return;
+
+    analytics.track('referral_form_submit', {
+      guideId: guide.id,
+      name: referralName,
+      contact: referralContact,
+      concern: referralConcern,
+    });
+
+    soundEngine.playChime(640, 1.5);
+    confetti({
+      particleCount: 60,
+      spread: 60,
+      origin: { y: 0.5 },
+    });
+    setIsReferralSubmitted(true);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#1C2216]/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#242A1E] text-[#FDFCF8] border border-[#8BA888]/30 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[94vh]">
-        {/* Header */}
-        <div className="px-5 sm:px-6 py-4 border-b border-[#3D4734] flex items-center justify-between bg-[#1C2216]/70">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#8BA888]/25 text-[#E9F0E8] border border-[#8BA888]/40 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-[#8BA888]" />
-              音訊導引 · Audio Guide
-            </span>
-            <span className="text-xs text-[#C9D6C8] font-medium hidden sm:inline">
-              {isEnglish ? guide.categoryEn : guide.categoryLabel} ({guide.durationMinutes} min)
-            </span>
+    <div className="fixed inset-0 z-50 bg-[#2C3324]/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+      <div className="bg-[#242A1E] text-[#FDFCF8] w-full max-w-3xl rounded-3xl border border-[#3D4734] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        
+        {/* Top Header */}
+        <div className="p-4 sm:p-5 border-b border-[#3D4734] flex items-center justify-between bg-[#1C2216]/90">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#2C3324] border border-[#8BA888]/30 flex items-center justify-center text-[#8BA888]">
+              <Headphones className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#8BA888]/20 text-[#8BA888] border border-[#8BA888]/30">
+                  {guide.categoryLabel}
+                </span>
+                <span className="text-xs text-[#A0A398]">{guide.durationMinutes} {isEnglish ? 'min' : '分鐘'}</span>
+              </div>
+              <h3 className="font-bold text-sm sm:text-base text-white line-clamp-1">{displayedTitle}</h3>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Voice Language Selector */}
-            <div className="flex items-center bg-[#1C2216] border border-[#8BA888]/40 rounded-xl px-2 py-1 shadow-xs">
-              <Globe className="w-3.5 h-3.5 text-[#8BA888] mr-1.5 shrink-0" />
-              <span className="text-[11px] text-[#C9D6C8] mr-1 hidden sm:inline">語音:</span>
-              <select
-                value={voiceLang}
-                onChange={(e) => handleVoiceLangChange(e.target.value as VoiceLang)}
-                className="bg-transparent text-white text-xs font-bold focus:outline-hidden cursor-pointer"
-                title="選擇音訊導引語音旁白語言 (廣東話 / 普通話 / 英語)"
+          <div className="flex items-center gap-2">
+            {/* Multilingual Switcher */}
+            <div className="flex items-center bg-[#2C3324] rounded-xl p-1 border border-[#3D4734] text-xs">
+              <button
+                onClick={() => handleVoiceLangChange('cantonese')}
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  voiceLang === 'cantonese' ? 'bg-[#8BA888] text-white shadow-xs' : 'text-[#C9D6C8] hover:text-white'
+                }`}
+                title="廣東話語音 (Cantonese Voice)"
               >
-                <option value="cantonese" className="bg-[#1C2216] text-white">🇭🇰 廣東話 (粵語)</option>
-                <option value="mandarin" className="bg-[#1C2216] text-white">🇹🇼 普通話 (國語)</option>
-                <option value="english" className="bg-[#1C2216] text-white">🇬🇧 英語 (English)</option>
-              </select>
+                粵語
+              </button>
+              <button
+                onClick={() => handleVoiceLangChange('mandarin')}
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  voiceLang === 'mandarin' ? 'bg-[#8BA888] text-white shadow-xs' : 'text-[#C9D6C8] hover:text-white'
+                }`}
+                title="國語語音 (Mandarin Voice)"
+              >
+                國語
+              </button>
+              <button
+                onClick={() => handleVoiceLangChange('english')}
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  voiceLang === 'english' ? 'bg-[#8BA888] text-white shadow-xs' : 'text-[#C9D6C8] hover:text-white'
+                }`}
+                title="English Voice"
+              >
+                EN
+              </button>
             </div>
 
             <button
-              onClick={cycleSpeed}
-              className="px-2.5 py-1 text-xs font-bold text-[#C9D6C8] hover:text-white rounded-xl hover:bg-[#3D4734] transition-colors cursor-pointer border border-[#3D4734]"
-              title="切換導引語速"
-            >
-              {playbackSpeed}x
-            </button>
-            <button
-              onClick={handleToggleVoice}
-              className={`p-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold ${
-                !isVoiceMuted
-                  ? 'bg-[#8BA888]/20 text-[#8BA888] border border-[#8BA888]/40 hover:bg-[#8BA888]/30'
-                  : 'text-[#A0A398] hover:text-white hover:bg-[#3D4734] border border-[#3D4734]'
-              }`}
-              title={isVoiceMuted ? '開啟教練語音旁白' : '關閉教練語音旁白'}
-            >
-              <Volume2 className={`w-4 h-4 ${!isVoiceMuted ? 'text-[#8BA888]' : 'text-[#7A7D73]'}`} />
-              <span className="hidden md:inline">{!isVoiceMuted ? '語音' : '靜音'}</span>
-            </button>
-            <button
-              onClick={handleToggleBackgroundSound}
-              className={`p-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold ${
-                !isAudioMuted
-                  ? 'bg-[#3D4734] text-white border border-[#8BA888]/30'
-                  : 'text-[#A0A398] hover:text-white hover:bg-[#3D4734] border border-[#3D4734]'
-              }`}
-              title={isAudioMuted ? '開啟聲學背景音' : '靜音背景音'}
-            >
-              <Music className={`w-4 h-4 ${!isAudioMuted ? 'text-teal-400' : 'text-[#7A7D73]'}`} />
-              <span className="hidden md:inline">{!isAudioMuted ? '聲景' : '無聲'}</span>
-            </button>
-            <button
               onClick={() => {
-                soundEngine.stopSoundscape();
                 speechEngine.cancel();
+                soundEngine.stopSoundscape();
                 onClose();
               }}
-              className="p-2 text-[#C9D6C8] hover:text-white rounded-xl hover:bg-[#3D4734] transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-[#C9D6C8] hover:text-white hover:bg-[#3D4734] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Content Body */}
-        <div className="p-5 sm:p-7 overflow-y-auto flex-1 flex flex-col justify-between space-y-6">
-          {/* Guide Title & Guide Specialist Info */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#3D4734]">
-            <div className="space-y-1">
-              <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-                {displayedTitle}
-              </h2>
-              {!isEnglish && (
-                <p className="text-xs text-[#8BA888] font-medium">
-                  {guide.titleEn}
-                </p>
-              )}
-              <p className="text-xs text-[#C9D6C8] pt-0.5 max-w-xl">
-                {displayedSub}
-              </p>
+        {/* 3.1 播放 50% 觸發的輕量溫和浮動轉介通知 */}
+        {show50ReferralBanner && !isCompleted && !isReferralModalOpen && (
+          <div className="bg-gradient-to-r from-[#2C3324] to-[#37402E] border-b border-[#8BA888]/40 px-4 py-2.5 flex items-center justify-between gap-2 text-xs animate-in slide-in-from-top duration-300">
+            <div className="flex items-center gap-2 text-[#E9F0E8] min-w-0">
+              <span className="w-2 h-2 rounded-full bg-[#8BA888] animate-ping shrink-0" />
+              <span className="truncate">
+                💡 這段音訊可紓解短期情緒，若長期受困於壓力、焦慮，可了解專業治療師深度協助
+              </span>
             </div>
-
-            {/* Guide Speaker Badge */}
-            <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-[#1C2216] border border-[#3D4734] shrink-0">
-              <div className="w-9 h-9 rounded-full bg-[#8BA888]/20 border border-[#8BA888]/40 flex items-center justify-center text-[#8BA888]">
-                <UserCheck className="w-4 h-4" />
-              </div>
-              <div className="text-left">
-                <div className="text-xs font-bold text-white">{guide.guideName}</div>
-                <div className="text-[10px] text-[#A0A398]">{displayedGuideRole}</div>
-              </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  analytics.track('referral_click', { from: '50_progress_banner', guideId: guide.id });
+                  setIsReferralModalOpen(true);
+                }}
+                className="px-3 py-1 rounded-lg bg-[#8BA888] hover:bg-[#759672] text-white text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
+              >
+                查看治療師
+              </button>
+              <button
+                onClick={() => setShow50ReferralBanner(false)}
+                className="p-1 text-[#A0A398] hover:text-white cursor-pointer"
+                title="關閉提示"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
+        )}
 
-          {!isCompleted ? (
-            <div className="space-y-5">
-              {/* Visual Track Player Bar */}
-              <div className="bg-[#1C2216] border border-[#3D4734] p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-inner">
+        {/* Modal Scrollable Body */}
+        <div className="flex-1 p-5 sm:p-7 overflow-y-auto space-y-6">
+          
+          {/* Main Player Display (When not completed and referral modal is closed) */}
+          {!isCompleted && !isReferralModalOpen ? (
+            <div className="space-y-6">
+              
+              {/* Doctor / Guide Information Banner */}
+              <div className="p-4 rounded-2xl bg-[#1C2216] border border-[#3D4734] flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="relative flex items-center justify-center">
-                    <div
-                      className={`w-10 h-10 rounded-full bg-[#8BA888]/20 border border-[#8BA888] flex items-center justify-center text-[#8BA888] ${
-                        isPlaying ? 'animate-pulse' : ''
-                      }`}
-                    >
-                      <Wind className="w-5 h-5" />
-                    </div>
-                  </div>
+                  <img
+                    src={guide.thumbnail}
+                    alt={guide.guideName}
+                    referrerPolicy="no-referrer"
+                    className="w-12 h-12 rounded-xl object-cover border border-[#3D4734]"
+                  />
                   <div>
-                    <div className="text-xs font-bold text-white flex items-center gap-2 flex-wrap">
-                      <span>{displayedChapterTitle}</span>
-                      {isVoiceSpeaking && (
-                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          {isEnglish ? 'Speaking (EN)' : voiceLang === 'cantonese' ? '粵語朗讀中' : '國語朗讀中'}
-                        </span>
-                      )}
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold text-white">
+                        {isEnglish ? (guide.guideNameEn || guide.guideName) : (isCantonese && guide.guideNameCantonese ? guide.guideNameCantonese : guide.guideName)}
+                      </h4>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#8BA888]/20 text-[#8BA888] font-semibold">
+                        {isEnglish ? 'Clinical Host' : '臨床主講'}
+                      </span>
                     </div>
-                    <div className="text-[11px] text-[#8BA888]">
-                      {isEnglish ? 'Framework: ' : '理論架構：'}{displayedFramework}
-                    </div>
+                    <p className="text-[11px] text-[#A0A398] mt-0.5 line-clamp-1">{displayedGuideRole}</p>
+                    <p className="text-[10px] text-[#8BA888] mt-0.5">{displayedFramework}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-3">
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={handleReplayVoice}
-                    className="px-2.5 py-1.5 rounded-xl bg-[#242A1E] hover:bg-[#3D4734] border border-[#3D4734] text-[11px] text-[#C9D6C8] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
-                    title="重新朗讀本章節語音"
+                    onClick={cycleSpeed}
+                    className="px-2.5 py-1 rounded-xl bg-[#2C3324] border border-[#3D4734] text-xs font-bold text-[#8BA888] hover:text-white cursor-pointer"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-[#8BA888]" />
-                    <span>{isEnglish ? 'Replay Voice' : '重播語音'}</span>
+                    {playbackSpeed}x
                   </button>
-
-                  <div className="text-right">
-                    <span className="text-xl font-extrabold text-white font-mono">
-                      {formatTime(secondsRemaining)}
-                    </span>
-                    <div className="text-[10px] text-[#A0A398]">
-                      {isEnglish ? `Chapter ${currentChapterIndex + 1} of ${totalChapters}` : `章節 ${currentChapterIndex + 1} / ${totalChapters}`}
-                    </div>
-                  </div>
+                  <button
+                    onClick={handleToggleBackgroundSound}
+                    className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                      !isAudioMuted
+                        ? 'bg-[#8BA888]/20 text-[#8BA888] border-[#8BA888]/30'
+                        : 'border-[#3D4734] text-[#7A7D73] hover:text-white'
+                    }`}
+                    title={!isAudioMuted ? '情境白噪音開啟中' : '靜音背景白噪音'}
+                  >
+                    <Music className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleToggleVoice}
+                    className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                      !isVoiceMuted
+                        ? 'bg-[#8BA888]/20 text-[#8BA888] border-[#8BA888]/30'
+                        : 'border-[#3D4734] text-[#7A7D73] hover:text-white'
+                    }`}
+                    title={!isVoiceMuted ? '心理師語音開啟中' : '語音靜音'}
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Navigation Tabs (Script / Act On / Notes) */}
-              <div className="flex p-1 bg-[#1C2216] rounded-xl border border-[#3D4734] max-w-sm">
+              {/* Sub-Tabs: Script / Action Items / Notes */}
+              <div className="flex items-center gap-2 border-b border-[#3D4734] pb-2 text-xs">
                 <button
                   onClick={() => setActiveTab('script')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    activeTab === 'script'
-                      ? 'bg-[#3D4734] text-white shadow-xs'
-                      : 'text-[#C9D6C8] hover:text-white'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    activeTab === 'script' ? 'bg-[#8BA888] text-white shadow-xs' : 'text-[#A0A398] hover:text-white'
                   }`}
                 >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>{isEnglish ? 'Transcript' : '語音文稿'}</span>
+                  📖 {isEnglish ? 'Clinical Script' : '心理師引導逐字稿'}
                 </button>
                 <button
                   onClick={() => setActiveTab('action')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    activeTab === 'action'
-                      ? 'bg-[#8BA888] text-white shadow-xs'
-                      : 'text-[#C9D6C8] hover:text-white'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'action' ? 'bg-[#8BA888] text-white shadow-xs' : 'text-[#A0A398] hover:text-white'
                   }`}
                 >
                   <CheckSquare className="w-3.5 h-3.5" />
-                  <span>{isEnglish ? 'Act On' : '即時行動'} ({Object.values(checkedActions).filter(Boolean).length}/{actionItemsList.length})</span>
+                  <span>{isEnglish ? 'Action Items' : '實證微行動'}</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#2C3324] text-[#8BA888]">
+                    {Object.values(checkedActions).filter(Boolean).length}/{actionItemsList.length}
+                  </span>
                 </button>
                 <button
                   onClick={() => setActiveTab('notes')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    activeTab === 'notes'
-                      ? 'bg-[#3D4734] text-white shadow-xs'
-                      : 'text-[#C9D6C8] hover:text-white'
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'notes' ? 'bg-[#8BA888] text-white shadow-xs' : 'text-[#A0A398] hover:text-white'
                   }`}
                 >
                   <Edit3 className="w-3.5 h-3.5" />
-                  <span>{isEnglish ? 'Notes' : '反思筆記'}</span>
+                  <span>{isEnglish ? 'Notes' : '隨堂反思筆記'}</span>
                 </button>
               </div>
 
-              {/* Tab 1: Script & Narration */}
+              {/* Tab 1: Clinical Script */}
               {activeTab === 'script' && (
                 <div className="bg-[#1C2216] border border-[#3D4734] p-5 sm:p-6 rounded-2xl space-y-4 shadow-inner">
-                  {/* Language switch pills inside transcript tab */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-[#3D4734]">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs text-[#8BA888] font-bold">
-                        {isEnglish ? 'Spoken Guidance Script' : '專業導引講稿'}
-                      </span>
-                      <div className="flex items-center gap-1 ml-1">
-                        <button
-                          onClick={() => handleVoiceLangChange('english')}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
-                            voiceLang === 'english'
-                              ? 'bg-[#8BA888] text-white'
-                              : 'bg-[#242A1E] text-[#A0A398] hover:text-white'
-                          }`}
-                        >
-                          🇬🇧 English
-                        </button>
-                        <button
-                          onClick={() => handleVoiceLangChange('cantonese')}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
-                            voiceLang === 'cantonese'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-[#242A1E] text-[#A0A398] hover:text-white'
-                          }`}
-                        >
-                          🇭🇰 廣東話白話
-                        </button>
-                        <button
-                          onClick={() => handleVoiceLangChange('mandarin')}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
-                            voiceLang === 'mandarin'
-                              ? 'bg-sky-600 text-white'
-                              : 'bg-[#242A1E] text-[#A0A398] hover:text-white'
-                          }`}
-                        >
-                          🇹🇼 普通話
-                        </button>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#8BA888] animate-pulse" />
+                      <h4 className="text-sm font-bold text-white">
+                        {displayedChapterTitle}
+                      </h4>
                     </div>
-                    <span className="text-[11px] text-[#C9D6C8]">
-                      {isEnglish 
-                        ? `Acoustic: ${guide.soundType}` 
-                        : `伴隨 ${guide.soundType === 'ocean' ? '海浪' : guide.soundType === 'rain' ? '細雨' : guide.soundType === 'singingBowl' ? '頌缽' : '森林微風'} 背景音`}
+                    <span className="text-xs font-mono text-[#8BA888] font-bold">
+                      {formatTime(secondsRemaining)}
                     </span>
                   </div>
 
-                  <p className="text-sm font-medium text-white leading-relaxed tracking-wide">
-                    {voiceLang === 'english'
+                  <p className="text-xs sm:text-sm text-[#E9F0E8] leading-relaxed tracking-wide font-normal">
+                    {isEnglish 
                       ? (currentChapter?.narrationScriptEn || currentChapter?.narrationScript)
-                      : voiceLang === 'cantonese'
-                      ? (currentChapter?.narrationScriptCantonese || convertToCantoneseSpoken(currentChapter?.narrationScript || ''))
-                      : currentChapter?.narrationScript}
+                      : (isCantonese && currentChapter?.narrationScriptCantonese ? currentChapter?.narrationScriptCantonese : currentChapter?.narrationScript)}
                   </p>
 
-                  {(currentChapter?.actionPrompt || currentChapter?.actionPromptEn || currentChapter?.actionPromptCantonese) && (
-                    <div className="p-3.5 rounded-xl bg-[#2C3324] border border-[#8BA888]/30 text-xs text-[#E9F0E8] flex items-start gap-2.5">
-                      <Sparkles className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-[#8BA888]">
-                          {isEnglish ? 'Immediate Action Cue:' : '本段即時行動指引：'}
-                        </span>
-                        <p className="mt-0.5">
-                          {isEnglish 
-                            ? (currentChapter.actionPromptEn || currentChapter.actionPrompt) 
-                            : (isCantonese && currentChapter.actionPromptCantonese ? currentChapter.actionPromptCantonese : currentChapter.actionPrompt)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {(currentChapter?.reflectionPrompt || currentChapter?.reflectionPromptEn || currentChapter?.reflectionPromptCantonese) && (
-                    <div className="p-3.5 rounded-xl bg-[#2A241E] border border-[#C88A58]/30 text-xs text-[#E9F0E8] flex items-start gap-2.5">
-                      <Heart className="w-4 h-4 text-[#C88A58] shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold text-[#C88A58]">
-                          {isEnglish ? 'Introspection Cue:' : '內在覺察反思：'}
-                        </span>
-                        <p className="mt-0.5">
-                          {isEnglish 
-                            ? (currentChapter.reflectionPromptEn || currentChapter.reflectionPrompt) 
-                            : (isCantonese && currentChapter.reflectionPromptCantonese ? currentChapter.reflectionPromptCantonese : currentChapter.reflectionPrompt)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  <div className="pt-2 flex items-center justify-between border-t border-[#3D4734] text-xs text-[#A0A398]">
+                    <span>{isVoiceSpeaking ? '🎙️ 心理師語音導引進行中...' : '⏸️ 語音暫停'}</span>
+                    <button
+                      onClick={handleReplayVoice}
+                      className="text-xs text-[#8BA888] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>{isEnglish ? 'Replay Voice' : '重新播放當前語音'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Tab 2: Act On Action Checklist */}
+              {/* Tab 2: Action Items */}
               {activeTab === 'action' && (
                 <div className="bg-[#1C2216] border border-[#3D4734] p-5 sm:p-6 rounded-2xl space-y-4 shadow-inner">
                   <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      <CheckSquare className="w-4 h-4 text-[#8BA888]" />
-                      <span>{isEnglish ? 'Guided Support to Act On · Practical Steps' : 'Guided Support to Act On · 實踐行動檢核'}</span>
-                    </h3>
-                    <p className="text-xs text-[#C9D6C8]">
-                      {isEnglish 
-                        ? 'Complete these clinical behavioral micro-actions as you listen to anchor neural learning:'
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#8BA888]" />
+                      <span>{isEnglish ? 'Clinical Micro-Actions (Act On)' : '邊聽邊做 · 臨床微行動指南'}</span>
+                    </h4>
+                    <p className="text-xs text-[#A0A398]">
+                      {isEnglish
+                        ? 'Complete these behavioral micro-actions as you listen to anchor neural learning:'
                         : '邊聽邊做，完成以下實證心理行為練習，將知識轉化為神經記憶：'}
                     </p>
                   </div>
@@ -656,19 +664,133 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
                       : '寫下你在本音訊導引中獲得的洞見、想對自己說的鼓勵，或接下來要執行的界線宣告...'}
                     className="w-full h-32 p-3.5 bg-[#242A1E] border border-[#3D4734] rounded-xl text-xs text-white placeholder-[#7A7D73] focus:outline-hidden focus:border-[#8BA888] transition-all resize-none leading-relaxed"
                   />
+                </div>
+              )}
+            </div>
+          ) : isReferralModalOpen ? (
+            /* 3.3 簡化預約/轉介表單 (3個極簡字段: 姓名、聯繫方式、核心困擾) */
+            <div className="bg-[#1C2216] rounded-3xl border border-[#8BA888]/40 p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-200">
+              {!isReferralSubmitted ? (
+                <form onSubmit={handleReferralSubmit} className="space-y-5">
+                  <div className="flex items-center justify-between border-b border-[#3D4734] pb-3">
+                    <div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#8BA888]/20 text-[#8BA888]">
+                        精準轉介 · 專業治療師深度諮詢
+                      </span>
+                      <h3 className="text-lg font-bold text-white mt-1">預約 1對1 專業心理治療師諮詢</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsReferralModalOpen(false)}
+                      className="p-1.5 rounded-lg text-[#A0A398] hover:text-white hover:bg-[#3D4734] transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
 
-                  <p className="text-[11px] text-[#C9D6C8]">
-                    {isEnglish ? 'Reflection Cue: ' : '當前思考：'}
-                    {isEnglish 
-                      ? (currentChapter?.reflectionPromptEn || 'What kind commitment can I make to myself right now?') 
-                      : (currentChapter?.reflectionPrompt || '我今天能為自己的身心做出哪一個溫柔的承諾？')}
+                  <p className="text-xs text-[#C9D6C8] leading-relaxed">
+                    音訊導引能即時降溫情緒，若你長期受困於壓力、焦慮、睡眠障礙或人際議題，填寫以下極簡資訊，臨床團隊將為你精準媒合對應專長治療師。
                   </p>
+
+                  <div className="space-y-4">
+                    {/* Field 1: Name */}
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1.5">
+                        1. 你的稱呼 / 姓名 *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={referralName}
+                        onChange={(e) => setReferralName(e.target.value)}
+                        placeholder="例如：Alex 或 陳小姐"
+                        className="w-full p-3 rounded-xl bg-[#242A1E] border border-[#3D4734] text-xs text-white placeholder-[#7A7D73] focus:outline-hidden focus:border-[#8BA888]"
+                      />
+                    </div>
+
+                    {/* Field 2: Contact */}
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1.5">
+                        2. 聯繫方式（電話 / Line ID / Email）*
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={referralContact}
+                        onChange={(e) => setReferralContact(e.target.value)}
+                        placeholder="例如：0912-345-678 或 line_id 或 name@email.com"
+                        className="w-full p-3 rounded-xl bg-[#242A1E] border border-[#3D4734] text-xs text-white placeholder-[#7A7D73] focus:outline-hidden focus:border-[#8BA888]"
+                      />
+                    </div>
+
+                    {/* Field 3: Core Concern */}
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1.5">
+                        3. 目前最想梳理的核心困擾 *
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={referralConcern}
+                        onChange={(e) => setReferralConcern(e.target.value)}
+                        placeholder="例如：死線工作壓力大、睡眠品質差、常常過度思考..."
+                        className="w-full p-3 rounded-xl bg-[#242A1E] border border-[#3D4734] text-xs text-white placeholder-[#7A7D73] focus:outline-hidden focus:border-[#8BA888] resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3.4 統一免責聲明 */}
+                  <div className="p-3 rounded-xl bg-[#242A1E] border border-[#3D4734] flex items-start gap-2 text-[11px] text-[#A0A398] leading-relaxed">
+                    <AlertCircle className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
+                    <span>
+                      <strong>免責聲明：</strong>本音訊為心理教育與情緒調適資源，不等同心理治療與醫療診斷，專業諮詢由外部合格治療師獨立提供。
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsReferralModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl bg-[#3D4734] text-white text-xs font-bold hover:bg-[#4D5A42] transition-colors cursor-pointer"
+                    >
+                      返回音訊
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-md shadow-[#8BA888]/20 cursor-pointer flex items-center gap-2"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>一鍵送出預約媒合</span>
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* Referral Submit Success Feedback */
+                <div className="text-center py-6 space-y-4 animate-in zoom-in-95 duration-200">
+                  <div className="w-16 h-16 rounded-full bg-[#8BA888]/20 border border-[#8BA888] flex items-center justify-center mx-auto text-[#8BA888]">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="text-lg font-bold text-white">預約媒合已送出！</h3>
+                    <p className="text-xs text-[#C9D6C8] max-w-md mx-auto leading-relaxed">
+                      感謝你的信任。我們已收到你的諮詢需求，專業個案個管師將在 24 小時內透過你留下的聯繫方式與你確認最合適的治療師與諮詢時段。
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsReferralModalOpen(false);
+                      setIsReferralSubmitted(false);
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all cursor-pointer"
+                  >
+                    完成並關閉
+                  </button>
                 </div>
               )}
             </div>
           ) : (
-            /* Completed Screen */
-            <div className="text-center py-8 space-y-5 bg-[#1C2216] rounded-3xl border border-[#8BA888]/40 p-6 sm:p-8 shadow-xl">
+            /* 3.2 播放 100% 完結：頁內強化轉介模組 */
+            <div className="text-center py-6 space-y-5 bg-[#1C2216] rounded-3xl border border-[#8BA888]/40 p-6 sm:p-8 shadow-xl">
               <div className="w-16 h-16 rounded-full bg-[#8BA888]/20 border border-[#8BA888] flex items-center justify-center mx-auto text-[#8BA888]">
                 <Award className="w-8 h-8 animate-pulse" />
               </div>
@@ -686,46 +808,54 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
                 </p>
               </div>
 
-              {/* Action summary badge */}
-              <div className="p-4 rounded-2xl bg-[#242A1E] border border-[#3D4734] text-xs text-left max-w-md mx-auto space-y-2">
-                <div className="font-bold text-[#8BA888] flex items-center gap-1.5">
+              {/* 核心轉介模組卡片 */}
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-[#242A1E] to-[#2C3324] border border-[#8BA888]/50 text-left max-w-lg mx-auto space-y-3 shadow-md">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#8BA888]">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>{isEnglish ? 'Session Takeaway & Action Summary:' : '本次行動實踐摘要：'}</span>
+                  <span>✅ 已完成心理師音訊導引 · 深度諮詢推薦</span>
                 </div>
-                <p className="text-[#C9D6C8] leading-relaxed">
-                  {keyTakeawayText}
+                <p className="text-xs text-[#E9F0E8] leading-relaxed">
+                  自我練習僅能緩解短期情緒，若長期面臨情緒、睡眠、職場或人際困擾，可透過專業治療師深度梳理。
                 </p>
-                {userNote && (
-                  <div className="pt-2 border-t border-[#3D4734] text-[11px] text-[#E9F0E8] italic">
-                    "{userNote}"
-                  </div>
-                )}
+                <div className="flex items-center justify-between pt-1 text-[11px] text-[#A0A398]">
+                  <span>📋 精準媒合對應專長臨床心理師 / 諮商心理師</span>
+                </div>
               </div>
 
+              {/* 固定雙按鈕：【瀏覽/預約諮詢】【探索其他音訊】 */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2 max-w-md mx-auto">
                 <button
-                  onClick={handleRestart}
-                  className="flex-1 py-3 rounded-2xl bg-[#3D4734] hover:bg-[#4D5A42] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                  onClick={() => {
+                    analytics.track('referral_click', { from: '100_complete_screen', guideId: guide.id });
+                    setIsReferralModalOpen(true);
+                  }}
+                  className="flex-1 py-3 rounded-2xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-md shadow-[#8BA888]/20 cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>{isEnglish ? 'Replay Guide' : '重新聆聽導引'}</span>
+                  <Calendar className="w-4 h-4" />
+                  <span>瀏覽 / 預約諮詢</span>
                 </button>
                 <button
                   onClick={() => {
                     soundEngine.stopSoundscape();
                     onClose();
+                    if (onOpenOtherGuides) onOpenOtherGuides();
                   }}
-                  className="flex-1 py-3 rounded-2xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-md shadow-[#8BA888]/20 cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-2xl bg-[#3D4734] hover:bg-[#4D5A42] text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isEnglish ? 'Return to Hub' : '重返主頁面'}</span>
+                  <Headphones className="w-4 h-4" />
+                  <span>探索其他音訊</span>
                 </button>
               </div>
+
+              {/* 免責聲明 */}
+              <p className="text-[10px] text-[#7A7D73] max-w-md mx-auto pt-2">
+                免責聲明：本音訊為心理教育資源，不等同心理治療與醫療診斷，專業諮詢由外部合格治療師獨立提供。
+              </p>
             </div>
           )}
 
           {/* Chapters Progress Bar */}
-          {!isCompleted && (
+          {!isCompleted && !isReferralModalOpen && (
             <div className="space-y-2 pt-2">
               <div className="flex justify-between text-[11px] font-medium text-[#C9D6C8]">
                 <span>
@@ -763,7 +893,7 @@ export const AudioGuideModal: React.FC<AudioGuideModalProps> = ({
         </div>
 
         {/* Footer Play Controls */}
-        {!isCompleted && (
+        {!isCompleted && !isReferralModalOpen && (
           <div className="px-5 sm:px-6 py-4 bg-[#1C2216] border-t border-[#3D4734] flex items-center justify-between">
             <button
               onClick={handlePrevChapter}

@@ -422,18 +422,40 @@ export const CollectionsExplorer: React.FC<CollectionsExplorerProps> = ({
                 </div>
               </div>
 
-              {/* Card Footer / Action Bar */}
-              <div className="p-4 bg-[#F9F8F4] border-t border-[#E8E6E0] flex items-center justify-between">
-                <span className="text-[11px] text-[#7A7D73] font-medium truncate max-w-[200px]">
+              {/* Card Footer / Action Bar: 新增【🎧 聆聽對應音訊導引】CTA */}
+              <div className="p-4 bg-[#F9F8F4] border-t border-[#E8E6E0] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <span className="text-[11px] text-[#7A7D73] font-medium truncate max-w-[200px] hidden sm:inline">
                   {col.clinicalOutcome}
                 </span>
-                <button
-                  onClick={() => onSelectCollection(col)}
-                  className="px-4 py-2 rounded-xl bg-[#2C3324] hover:bg-[#3D4035] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer group-hover:bg-[#8BA888] shrink-0"
-                >
-                  <span>探索專題</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </button>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {/* CTA 1: 聆聽對應音訊導引 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      let targetAudio = AUDIO_GUIDES.find(a => col.audioGuideIds.includes(a.id));
+                      if (!targetAudio) {
+                        targetAudio = AUDIO_GUIDES.find(a => a.category === col.category) || AUDIO_GUIDES[0];
+                      }
+                      if (targetAudio) {
+                        onOpenAudioGuide(targetAudio);
+                      }
+                    }}
+                    className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-[#E9F0E8] hover:bg-[#8BA888] text-[#2C3324] hover:text-white text-xs font-bold transition-all border border-[#C9D6C8] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Headphones className="w-3.5 h-3.5" />
+                    <span>🎧 聆聽對應音訊導引</span>
+                  </button>
+
+                  {/* CTA 2: 探索專題 */}
+                  <button
+                    onClick={() => onSelectCollection(col)}
+                    className="px-3.5 py-2 rounded-xl bg-[#2C3324] hover:bg-[#3D4035] text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <span>探索專題</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
               </div>
             </div>
           );

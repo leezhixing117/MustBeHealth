@@ -9,17 +9,24 @@ import {
   CheckCircle2, 
   ArrowRight,
   Heart,
-  Send
+  Send,
+  Headphones,
+  Zap,
+  Mail,
+  ShieldCheck
 } from 'lucide-react';
-import { MoodType, MoodRecord, Language } from '../types';
+import { MoodType, MoodRecord, Language, AudioGuide } from '../types';
 import { translations } from '../utils/i18n';
 import { soundEngine } from '../utils/soundEngine';
+import { analytics } from '../utils/analytics';
+import { ALL_AUDIO_GUIDES } from '../data/audioGuidesData';
 
 interface MoodCheckInProps {
   lang: Language;
   onSaveMood: (record: MoodRecord) => void;
   onStartRescue: (id?: string) => void;
   onStartJournal: (templateId?: string) => void;
+  onOpenAudioGuide?: (guide: AudioGuide) => void;
   todayRecord?: MoodRecord | null;
 }
 
@@ -28,6 +35,7 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
   onSaveMood,
   onStartRescue,
   onStartJournal,
+  onOpenAudioGuide,
   todayRecord,
 }) => {
   const t = translations[lang];
@@ -36,6 +44,8 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
   const [note, setNote] = useState<string>(todayRecord?.note || '');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(!!todayRecord);
   const [submittedMood, setSubmittedMood] = useState<MoodType | null>(todayRecord?.mood || null);
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [emailSubscribed, setEmailSubscribed] = useState<boolean>(false);
 
   const moodOptions: { type: MoodType; label: string; emoji: string; color: string; ringColor: string }[] = [
     { type: 'great', label: t.moodGreat, emoji: '✨', color: 'bg-emerald-500 text-white', ringColor: 'ring-emerald-500' },
@@ -68,84 +78,108 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
     e.preventDefault();
     if (!selectedMood) return;
 
-    soundEngine.playChime(640, 1.2);
+    const record: MoodRecord = {
+      id: todayRecord?.id || `m-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      mood: selectedMood,
+      factors: selectedFactors,
+      note,
+      timestamp: Date.now(),
+    };
+
+    onSaveMood(record);
+    setSubmittedMood(selectedMood);
+    setIsSubmitted(true);
+    soundEngine.playChime(580, 1.2);
     confetti({
       particleCount: 50,
       spread: 60,
       origin: { y: 0.6 },
-      colors: ['#10b981', '#14b8a6', '#06b6d4', '#f59e0b'],
     });
 
-    const newRecord: MoodRecord = {
-      id: `mood-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
+    analytics.track('mood_checkin', {
       mood: selectedMood,
-      factors: selectedFactors,
-      note: note.trim() || undefined,
-      timestamp: Date.now(),
-    };
-
-    setSubmittedMood(selectedMood);
-    setIsSubmitted(true);
-    onSaveMood(newRecord);
+      factorsCount: selectedFactors.length,
+      hasNote: !!note.trim(),
+    });
   };
 
-  const getCBTInsight = (mood: MoodType) => {
+  const handleSubscribeEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userEmail.trim()) return;
+    setEmailSubscribed(true);
+    soundEngine.playChime(640, 0.8);
+    analytics.track('referral_form_submit', {
+      type: 'weekly_email_support',
+      email: userEmail,
+    });
+  };
+
+  // 根據心情精準匹配 1 個急救工具 + 1 個臨床音訊導引
+  const getRecommendation = (mood: MoodType) => {
     switch (mood) {
-      case 'stressed':
+      case 'stressed': {
+        const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-stress-deadline') || ALL_AUDIO_GUIDES[0];
         return {
-          title: '🌸 溫柔提醒：焦慮是大腦在試圖保護你',
-          advice: '你現在處於高警覺狀態。試著將雙腳踩在地上，進行 3 次深長的呼氣，讓副交感神經重新掌舵。',
-          actionText: '立即進行 4-7-8 焦慮急救呼吸',
-          actionHandler: () => onStartRescue('rescue-breathe-478'),
+          title: '🌿 壓力緩解策略 · 雙向調適建議',
+          advice: '你現在的大腦可能正處於高度緊繃的警覺狀態。給自己 2~5 分鐘，先透過生理急救降溫，再聆聽心理師音訊導引重奪掌控感。',
+          rescueId: 'rescue-breathe-478',
+          rescueTitle: '4-7-8 焦慮急救呼吸法 (2分鐘)',
+          audioGuide: audio,
+          audioTitle: '🎧 應對高壓死線與壓迫感 (臨床音訊 8分鐘)',
         };
-      case 'down':
+      }
+      case 'down': {
+        const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-self-compassion-harsh') || ALL_AUDIO_GUIDES[1] || ALL_AUDIO_GUIDES[0];
         return {
-          title: '💙 給情緒一個安全的容納空間',
-          advice: '低落的情緒也是我們的一部分。試著辨識剛才閃過的自動化負面念頭，為它尋找客觀的溫柔視角。',
-          actionText: '開啟 CBT 認知重塑日記',
-          actionHandler: () => onStartJournal('tpl-cbt'),
+          title: '💙 接納當下低落 · 溫柔自癒方案',
+          advice: '低落的情緒也是身體在提醒你需要休息。不必急著強顏歡笑，允許自己此刻停下腳步，讓溫暖的聲音陪你。',
+          rescueId: 'rescue-criticism-shield',
+          rescueTitle: '自我慈悲與批評盾牌法 (3分鐘)',
+          audioGuide: audio,
+          audioTitle: '🎧 停止內在嚴厲批判：給疲憊靈魂的慈悲導引 (9分鐘)',
         };
-      case 'okay':
+      }
+      case 'okay': {
+        const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-anxiety-racing-thoughts') || ALL_AUDIO_GUIDES[2] || ALL_AUDIO_GUIDES[0];
         return {
-          title: '🍃 平靜是累積內在能量的好時刻',
-          advice: '平穩的心境是最好的滋養。花 3 分鐘寫下今天值得感恩的小事，強化心理韌性。',
-          actionText: '記錄今日感恩三件事',
-          actionHandler: () => onStartJournal('tpl-gratitude'),
+          title: '🌱 平穩定心 · 沉澱思緒計畫',
+          advice: '在日常的平和中花幾分鐘進行正念梳理，能為大腦建立更強大的抗壓緩衝區。',
+          rescueId: 'rescue-procrastination-2min',
+          rescueTitle: '2分鐘微行動破除停滯 (2分鐘)',
+          audioGuide: audio,
+          audioTitle: '🎧 平息大腦過度運轉與反芻思維 (7分鐘)',
         };
+      }
       case 'good':
-      case 'great':
+      case 'great': {
+        const audio = ALL_AUDIO_GUIDES.find((a) => a.id === 'ag-boundaries-guilt-free') || ALL_AUDIO_GUIDES[3] || ALL_AUDIO_GUIDES[0];
         return {
-          title: '✨ 捕捉當下的美好與充沛能量',
-          advice: '記住這個輕盈舒適的感覺！你可以將這份積極感受化為動力，推進你的學習路徑。',
-          actionText: '探索思維成長學習路徑',
-          actionHandler: () => onStartJournal('tpl-gratitude'),
+          title: '✨ 能量賦能 · 鞏固心理界線',
+          advice: '趁著身心狀態良好，練習鞏固清晰的心理界線與感恩練習，讓這份正向力量延續到生活中。',
+          rescueId: 'rescue-anxiety-somatic-shaking',
+          rescueTitle: '正向活力身體重啟 (2分鐘)',
+          audioGuide: audio,
+          audioTitle: '🎧 勇於拒絕不內疚：堅定自我界線導引 (8分鐘)',
         };
+      }
     }
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E8E6E0] shadow-xs relative overflow-hidden">
-      {/* Decorative subtle background aura */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-[#E9F0E8]/40 rounded-full blur-3xl -z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#F1F5EF]/60 rounded-full blur-2xl -z-10 pointer-events-none" />
-
+    <div className="p-6 sm:p-7 rounded-3xl bg-white border border-[#E8E6E0] shadow-xs">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#E9F0E8] text-[#2C3324] flex items-center justify-center">
-            <Heart className="w-4 h-4 fill-[#8BA888] text-[#8BA888]" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-[#2C3324]">{t.checkinTitle}</h2>
-            <p className="text-xs text-[#7A7D73]">{t.checkinSubtitle}</p>
-          </div>
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-[#2C3324]">
+            {t.dailyMoodCheckIn}
+          </h2>
+          <p className="text-xs text-[#5A6352]">
+            {t.moodSubtitle}
+          </p>
         </div>
-        {isSubmitted && (
-          <span className="flex items-center gap-1 text-xs font-semibold text-[#2C3324] bg-[#E9F0E8] border border-[#C9D6C8] px-2.5 py-1 rounded-full">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#8BA888]" />
-            {t.checkinDone}
-          </span>
-        )}
+        <div className="w-8 h-8 rounded-full bg-[#E9F0E8] flex items-center justify-center text-[#8BA888]">
+          <Heart className="w-4 h-4" />
+        </div>
       </div>
 
       {!isSubmitted ? (
@@ -241,7 +275,7 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
           </div>
         </form>
       ) : (
-        /* Submitted view with psychological reflection & tailored action */
+        /* Submitted view: 零彈窗平滑展示「1 個急救工具 + 1 個專屬音訊導引」雙入口 */
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="p-4 rounded-2xl bg-[#F9F8F4] border border-[#E8E6E0] shadow-xs">
             <div className="flex items-start justify-between">
@@ -250,7 +284,7 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
                   {moodOptions.find((m) => m.type === submittedMood)?.emoji}
                 </span>
                 <span className="text-sm font-bold text-[#2C3324]">
-                  今天感到 {moodOptions.find((m) => m.type === submittedMood)?.label}
+                  今日心情已記錄：{moodOptions.find((m) => m.type === submittedMood)?.label}
                 </span>
                 {selectedFactors.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
@@ -271,31 +305,105 @@ export const MoodCheckIn: React.FC<MoodCheckInProps> = ({
                 onClick={() => setIsSubmitted(false)}
                 className="text-xs text-[#7A7D73] hover:text-[#2C3324] underline cursor-pointer"
               >
-                重新編輯
+                重新簽到
               </button>
             </div>
           </div>
 
-          {/* Clinically Grounded Next Step Recommendation */}
-          {submittedMood && (
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#2C3324] text-[#FDFCF8] shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-[#8BA888]">
-                  {getCBTInsight(submittedMood).title}
-                </p>
-                <p className="text-xs text-[#E9F0E8]/90 leading-relaxed max-w-xl">
-                  {getCBTInsight(submittedMood).advice}
-                </p>
+          {/* Clinically Grounded Dual Matched Recommendation */}
+          {submittedMood && (() => {
+            const rec = getRecommendation(submittedMood);
+            return (
+              <div className="p-5 rounded-3xl bg-[#2C3324] text-[#FDFCF8] shadow-md space-y-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#8BA888]">
+                    <Sparkles className="w-4 h-4" />
+                    <span>{rec.title}</span>
+                  </div>
+                  <p className="text-xs text-[#E9F0E8]/90 leading-relaxed">
+                    {rec.advice}
+                  </p>
+                </div>
+
+                {/* Dual Entry: 1 急救工具 + 1 臨床音訊導引 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Tool 1: Rescue Tool */}
+                  <button
+                    onClick={() => {
+                      analytics.track('tool_open', { toolId: rec.rescueId, from: 'mood_checkin' });
+                      onStartRescue(rec.rescueId);
+                    }}
+                    className="p-3.5 rounded-2xl bg-[#37402E] hover:bg-[#434E39] border border-[#4D5A42] text-left transition-all flex items-center justify-between group cursor-pointer"
+                  >
+                    <div className="space-y-0.5 pr-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#8BA888]">
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>即時生理急救工具</span>
+                      </div>
+                      <p className="text-xs font-semibold text-white group-hover:text-[#8BA888] transition-colors line-clamp-1">
+                        {rec.rescueTitle}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-[#8BA888] shrink-0 group-hover:translate-x-1 transition-transform" />
+                  </button>
+
+                  {/* Tool 2: Matched Audio Guide */}
+                  <button
+                    onClick={() => {
+                      if (onOpenAudioGuide && rec.audioGuide) {
+                        analytics.track('audio_start', { guideId: rec.audioGuide.id, from: 'mood_checkin' });
+                        onOpenAudioGuide(rec.audioGuide);
+                      }
+                    }}
+                    className="p-3.5 rounded-2xl bg-[#8BA888]/20 hover:bg-[#8BA888]/30 border border-[#8BA888]/40 text-left transition-all flex items-center justify-between group cursor-pointer"
+                  >
+                    <div className="space-y-0.5 pr-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#C88A58]">
+                        <Headphones className="w-3.5 h-3.5" />
+                        <span>🎧 臨床心理師音訊導引</span>
+                      </div>
+                      <p className="text-xs font-semibold text-white group-hover:text-[#C88A58] transition-colors line-clamp-1">
+                        {rec.audioTitle}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-[#C88A58] shrink-0 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={getCBTInsight(submittedMood).actionHandler}
-                className="whitespace-nowrap px-4 py-2 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <span>{getCBTInsight(submittedMood).actionText}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+            );
+          })()}
+
+          {/* Optional zero-barrier Email follow-up (免註冊，可選接收每週心理師練習) */}
+          <div className="p-4 rounded-2xl bg-[#F1F5EF] border border-[#E8E6E0] text-xs">
+            {!emailSubscribed ? (
+              <form onSubmit={handleSubscribeEmail} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-[#5A6352]">
+                  <Mail className="w-4 h-4 text-[#8BA888] shrink-0" />
+                  <span>想在每週一收到心理師專屬音訊導引與練習？（選填）：</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="輸入你的 Email..."
+                    className="px-3 py-1.5 text-xs bg-white rounded-xl border border-[#E8E6E0] text-[#2C3324] placeholder-[#7A7D73] focus:outline-hidden focus:border-[#8BA888] w-full sm:w-48"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 rounded-xl bg-[#2C3324] hover:bg-[#3D4035] text-white text-xs font-bold whitespace-nowrap cursor-pointer transition-colors"
+                  >
+                    訂閱支持
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-center gap-2 text-[#2C3324] font-medium">
+                <ShieldCheck className="w-4 h-4 text-[#8BA888]" />
+                <span>感謝你的訂閱！已為你設定每週心理師精選音訊導引推播（隨時可退訂）。</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

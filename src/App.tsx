@@ -431,6 +431,10 @@ export default function App() {
         <AudioGuideModal
           guide={activeAudioGuideForModal}
           onClose={() => setActiveAudioGuideForModal(null)}
+          onOpenOtherGuides={() => {
+            setActiveAudioGuideForModal(null);
+            setCurrentTab('audio-guides');
+          }}
           onComplete={(guideId) => {
             showToast('🎧 音訊導引與行動練習已圓滿完成，力量已深植於心！');
             setStreakCount((prev) => prev);

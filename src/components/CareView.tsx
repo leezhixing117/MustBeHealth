@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Coach, Language } from '../types';
 import { DEFAULT_CARE_CONSULTANT } from '../data/mockData';
+import { analytics } from '../utils/analytics';
 
 interface CareViewProps {
   lang: Language;
@@ -287,14 +288,20 @@ export const CareView: React.FC<CareViewProps> = ({
               {/* Actions: Text Consultation & Booking */}
               <div className="pt-3 border-t border-[#E8E6E0] flex items-center gap-2">
                 <button
-                  onClick={() => onOpenCoach(coach, 'chat')}
+                  onClick={() => {
+                    analytics.track('referral_click', { coachName: coach.name, mode: 'chat', from: 'care_view' });
+                    onOpenCoach(coach, 'chat');
+                  }}
                   className="flex-1 py-2.5 rounded-xl bg-[#F1F5EF] hover:bg-[#E9F0E8] text-[#3D4035] text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-[#7A7D73]" />
                   <span>文字諮詢</span>
                 </button>
                 <button
-                  onClick={() => onOpenCoach(coach, 'book')}
+                  onClick={() => {
+                    analytics.track('referral_click', { coachName: coach.name, mode: 'book', from: 'care_view' });
+                    onOpenCoach(coach, 'book');
+                  }}
                   className="flex-1 py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Calendar className="w-3.5 h-3.5" />

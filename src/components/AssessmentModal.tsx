@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { ASSESSMENT_QUESTIONS } from '../data/mockData';
 import { soundEngine } from '../utils/soundEngine';
+import { analytics } from '../utils/analytics';
 
 interface AssessmentModalProps {
   onClose: () => void;
@@ -49,6 +50,8 @@ export const AssessmentModal: React.FC<AssessmentModalProps> = ({
         spread: 60,
         origin: { y: 0.5 },
       });
+      const finalScore = (Object.values(updated) as number[]).reduce((a, b) => a + b, 0);
+      analytics.track('assessment_complete', { score: finalScore });
     }
   };
 
@@ -183,6 +186,7 @@ export const AssessmentModal: React.FC<AssessmentModalProps> = ({
 
                 <button
                   onClick={() => {
+                    analytics.track('referral_click', { from: 'assessment_modal_result' });
                     onClose();
                     onOpenCoach('coach-1');
                   }}

@@ -107,6 +107,40 @@ export const Header: React.FC<HeaderProps> = ({
             </nav>
           </div>
 
+          {/* Core Quick Funnel Navigation (全域固定快捷導航) */}
+          <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-[#F1F5EF] border border-[#E8E6E0] rounded-2xl shadow-xs">
+            <button
+              onClick={() => {
+                onTabChange('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#2C3324] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
+            >
+              心情簽到
+            </button>
+            <span className="text-[#C9D6C8] text-xs">|</span>
+            <button
+              onClick={() => onTabChange('rescue')}
+              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#5A6352] hover:text-[#2C3324] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
+            >
+              即時急救工具
+            </button>
+            <span className="text-[#C9D6C8] text-xs">|</span>
+            <button
+              onClick={() => onTabChange('audio-guides')}
+              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#8BA888] hover:text-[#6d8c6a] hover:bg-white hover:shadow-xs transition-all cursor-pointer flex items-center gap-1"
+            >
+              <span>🎧 音訊導引</span>
+            </button>
+            <span className="text-[#C9D6C8] text-xs">|</span>
+            <button
+              onClick={() => onTabChange('care')}
+              className="px-2.5 py-1 rounded-xl text-[11px] font-bold text-[#C88A58] hover:text-[#a0683a] hover:bg-white hover:shadow-xs transition-all cursor-pointer"
+            >
+              治療師轉介
+            </button>
+          </div>
+
           {/* Right Action Bar */}
           <div className="flex items-center gap-3">
             {/* Streak Counter */}
@@ -215,25 +249,61 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile Tab All-at-a-glance Bar */}
-      <div className="lg:hidden border-t border-[#E8E6E0] bg-[#FDFCF8] px-3 py-2 flex flex-wrap items-center gap-1.5">
-        {navItems.map((item) => {
-          const isActive = currentTab === item.id;
-          const navTheme = NAV_THEMES[item.id] || NAV_THEMES.home;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={`px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                isActive
-                  ? `${navTheme.activeBg} ${navTheme.activeText} font-bold shadow-xs`
-                  : 'bg-[#F1F5EF] text-[#5A6352] hover:bg-[#E9F0E8] hover:text-[#2C3324]'
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : navTheme.dot}`} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+      <div className="lg:hidden border-t border-[#E8E6E0] bg-[#FDFCF8] px-3 py-2 space-y-1.5">
+        {/* Core Quick Funnel Navigation on Mobile */}
+        <div className="flex items-center justify-between bg-[#F1F5EF] p-1 rounded-xl border border-[#E8E6E0] text-[11px] font-bold">
+          <button
+            onClick={() => {
+              onTabChange('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex-1 py-1 text-center text-[#2C3324] hover:bg-white rounded-lg transition-colors cursor-pointer"
+          >
+            心情簽到
+          </button>
+          <span className="text-[#C9D6C8]">|</span>
+          <button
+            onClick={() => onTabChange('rescue')}
+            className="flex-1 py-1 text-center text-[#5A6352] hover:bg-white rounded-lg transition-colors cursor-pointer"
+          >
+            急救工具
+          </button>
+          <span className="text-[#C9D6C8]">|</span>
+          <button
+            onClick={() => onTabChange('audio-guides')}
+            className="flex-1 py-1 text-center text-[#8BA888] hover:bg-white rounded-lg transition-colors cursor-pointer"
+          >
+            🎧 音訊導引
+          </button>
+          <span className="text-[#C9D6C8]">|</span>
+          <button
+            onClick={() => onTabChange('care')}
+            className="flex-1 py-1 text-center text-[#C88A58] hover:bg-white rounded-lg transition-colors cursor-pointer"
+          >
+            治療師轉介
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          {navItems.map((item) => {
+            const isActive = currentTab === item.id;
+            const navTheme = NAV_THEMES[item.id] || NAV_THEMES.home;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange(item.id)}
+                className={`px-3 py-1.5 rounded-full text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isActive
+                    ? `${navTheme.activeBg} ${navTheme.activeText} font-bold shadow-xs`
+                    : 'bg-[#F1F5EF] text-[#5A6352] hover:bg-[#E9F0E8] hover:text-[#2C3324]'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : navTheme.dot}`} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </header>
   );

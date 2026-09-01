@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Play, 
   ArrowRight, 
@@ -22,11 +22,13 @@ import {
   MessageSquare,
   Target,
   Headphones,
-  UserCheck
+  UserCheck,
+  Zap
 } from 'lucide-react';
 import { MoodRecord, LearningPath, RescueSession, Coach, SoundscapeItem, AudioGuide, Language, IntellectCollection } from '../types';
 import { LEARNING_PATHS, RESCUE_SESSIONS, DEFAULT_CARE_CONSULTANT, SOUNDSCAPES, AUDIO_GUIDES } from '../data/mockData';
 import { translations } from '../utils/i18n';
+import { analytics } from '../utils/analytics';
 import { MoodCheckIn } from './MoodCheckIn';
 import { CollectionsExplorer } from './CollectionsExplorer';
 import { CollectionDetailModal } from './CollectionDetailModal';
@@ -64,6 +66,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 }) => {
   const t = translations[lang];
   const [selectedCollectionForModal, setSelectedCollectionForModal] = useState<IntellectCollection | null>(null);
+
+  useEffect(() => {
+    analytics.track('home_view', { streakCount });
+  }, [streakCount]);
 
   // Active user path
   const activePath = LEARNING_PATHS[0]; // Overthinking CBT path
@@ -121,7 +127,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         {/* Quick self assessment pill badge */}
         <div className="flex items-center gap-2">
           <button
-            onClick={onOpenAssessment}
+            onClick={() => {
+              analytics.track('assessment_start');
+              onOpenAssessment();
+            }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F9F8F4] border border-[#E8E6E0] shadow-xs text-xs font-semibold text-[#3D4035] transition-all cursor-pointer"
           >
             <Activity className="w-4 h-4 text-[#8BA888]" />
@@ -130,7 +139,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         </div>
       </div>
 
-      {/* 2. Daily Mood Check-In Card */}
+      {/* 2. Daily Mood Check-In Card (首位互動入口，完成後雙向自動導流) */}
       <MoodCheckIn
         lang={lang}
         onSaveMood={onSaveMood}
@@ -139,10 +148,154 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           onOpenRescue(sess);
         }}
         onStartJournal={onOpenJournal}
+        onOpenAudioGuide={onOpenAudioGuide}
         todayRecord={todayMoodRecord}
       />
 
-      {/* 3. Thematic Collections (參考 app.intellect.co/collection/list 快速分類探索) */}
+      {/* 3. 【黃金視野重點置頂】🎧 臨床心理師音訊導引｜即時情緒調適 (工具 + 音訊雙入口) */}
+      <div className="space-y-4 p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-[#F4F8F3] via-white to-[#FAF6F0] border border-[#C9D6C8] shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-bold text-[#2C3324] bg-[#E9F0E8] px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-[#8BA888]/40 shadow-2xs">
+                <Headphones className="w-3.5 h-3.5 text-[#8BA888]" />
+                黃金焦點 · 即時心理支持
+              </span>
+              <span className="text-[11px] text-[#7A7D73] font-medium hidden sm:inline">
+                臨床實證語音 · 邊聽邊做 · 溫和專業轉介
+              </span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-extrabold text-[#2C3324] tracking-tight flex items-center gap-2">
+              <span>🎧 臨床心理師音訊導引｜即時情緒調適</span>
+            </h2>
+            <p className="text-xs text-[#5A6352] mt-0.5">
+              由專業臨床心理學家親自錄製，在 7-10 分鐘內帶你進行神經生理降溫與認知重塑。
+            </p>
+          </div>
+          <button
+            onClick={() => onTabChange('audio-guides')}
+            className="text-xs font-bold text-[#8BA888] hover:text-[#6d8c6a] flex items-center gap-1 cursor-pointer shrink-0 self-start sm:self-auto"
+          >
+            <span>瀏覽全部 40+ 音訊</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+          {AUDIO_GUIDES.slice(0, 3).map((guide) => (
+            <div
+              key={guide.id}
+              onClick={() => {
+                analytics.track('audio_start', { guideId: guide.id, from: 'home_golden_spotlight' });
+                onOpenAudioGuide ? onOpenAudioGuide(guide) : onTabChange('audio-guides');
+              }}
+              className="p-5 rounded-3xl bg-white border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-[#E9F0E8] text-[#2C3324]">
+                    {guide.categoryLabel}
+                  </span>
+                  <span className="text-[11px] text-[#7A7D73] font-semibold flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-[#8BA888]" />
+                    {guide.durationMinutes} 分鐘
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[#2C3324] group-hover:text-[#8BA888] transition-colors leading-snug">
+                    {guide.title}
+                  </h3>
+                  <p className="text-[11px] text-[#7A7D73] font-medium mt-0.5 line-clamp-1">
+                    {guide.titleEn}
+                  </p>
+                  <p className="text-xs text-[#5A6352] mt-1.5 line-clamp-2 leading-relaxed">
+                    {guide.subtitle}
+                  </p>
+                </div>
+                <div className="text-[11px] text-[#7A7D73] flex items-center gap-1 pt-1 border-t border-[#F1F5EF]">
+                  <UserCheck className="w-3 h-3 text-[#8BA888]" />
+                  <span>{guide.guideName} · {guide.guideRole.split('·')[0]}</span>
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-between text-xs text-[#2C3324] font-bold">
+                <span className="text-[#8BA888] flex items-center gap-1">
+                  <Headphones className="w-3.5 h-3.5" />
+                  <span>🎧 立即聆聽導引</span>
+                </span>
+                <div className="w-7 h-7 rounded-full bg-[#F1F5EF] group-hover:bg-[#8BA888] group-hover:text-white flex items-center justify-center transition-colors">
+                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Quick Rescue Sessions (2-5 Min SOS 即時急救工具) */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-bold text-[#8BA888] bg-[#E9F0E8] px-2 py-0.5 rounded-md flex items-center gap-1 border border-[#C9D6C8]/60">
+                <Zap className="w-3 h-3 text-[#8BA888]" />
+                生理降溫 · 即刻止損
+              </span>
+            </div>
+            <h2 className="text-base sm:text-lg font-bold text-[#2C3324]">{t.quickRescue}</h2>
+            <p className="text-xs text-[#7A7D73]">{t.quickRescueSub}</p>
+          </div>
+          <button
+            onClick={() => onTabChange('rescue')}
+            className="text-xs font-bold text-[#8BA888] hover:text-[#6d8c6a] flex items-center gap-1 cursor-pointer"
+          >
+            <span>查看全部</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {RESCUE_SESSIONS.map((sess) => (
+            <button
+              key={sess.id}
+              onClick={() => {
+                analytics.track('tool_open', { toolId: sess.id, from: 'home_quick_rescue' });
+                onOpenRescue(sess);
+              }}
+              className="p-5 rounded-3xl bg-white border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-2xl bg-[#F1F5EF] group-hover:bg-[#E9F0E8] border border-[#E8E6E0] flex items-center justify-center transition-colors">
+                    {getRescueIcon(sess.category)}
+                  </div>
+                  <span className="text-[11px] font-bold text-[#7A7D73] bg-[#F9F8F4] border border-[#E8E6E0] px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {sess.durationText}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[#2C3324] group-hover:text-[#8BA888] transition-colors">
+                    {sess.title}
+                  </h3>
+                  <p className="text-xs text-[#7A7D73] mt-1 line-clamp-2 leading-relaxed">
+                    {sess.subtitle}
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-between text-xs text-[#2C3324] font-bold">
+                <span>立即開始</span>
+                <div className="w-6 h-6 rounded-full bg-[#F1F5EF] group-hover:bg-[#8BA888] group-hover:text-white flex items-center justify-center transition-colors">
+                  <Play className="w-3 h-3 fill-current ml-0.5" />
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 5. Thematic Collections (全套 55 個情境主題工具庫，已整合【🎧 聆聽對應音訊導引】CTA) */}
       <CollectionsExplorer
         lang={lang}
         onSelectCollection={(col) => setSelectedCollectionForModal(col)}
@@ -153,7 +306,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         onPlaySoundscape={onPlaySoundscape}
       />
 
-      {/* 4. Today's Active Learning Path (CBT Mini-course) */}
+      {/* 6. Today's Active Learning Path (CBT Mini-course) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -233,7 +386,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 </span>
 
                 <button
-                  onClick={() => onOpenPath(activePath, nextLessonIndex)}
+                  onClick={() => {
+                    analytics.track('tool_open', { toolId: activePath.id, lesson: nextLessonIndex, type: 'learning_path' });
+                    onOpenPath(activePath, nextLessonIndex);
+                  }}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-md shadow-[#8BA888]/20 active:scale-98 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5 fill-white" />
@@ -245,131 +401,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         </div>
       </div>
 
-      {/* 4. Quick Rescue Sessions (2-5 Min SOS) */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-[#2C3324]">{t.quickRescue}</h2>
-            <p className="text-xs text-[#7A7D73]">{t.quickRescueSub}</p>
-          </div>
-          <button
-            onClick={() => onTabChange('rescue')}
-            className="text-xs font-bold text-[#8BA888] hover:text-[#6d8c6a] flex items-center gap-1 cursor-pointer"
-          >
-            <span>查看全部</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {RESCUE_SESSIONS.map((sess) => (
-            <button
-              key={sess.id}
-              onClick={() => onOpenRescue(sess)}
-              className="p-5 rounded-3xl bg-white border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-2xl bg-[#F1F5EF] group-hover:bg-[#E9F0E8] border border-[#E8E6E0] flex items-center justify-center transition-colors">
-                    {getRescueIcon(sess.category)}
-                  </div>
-                  <span className="text-[11px] font-bold text-[#7A7D73] bg-[#F9F8F4] border border-[#E8E6E0] px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {sess.durationText}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-[#2C3324] group-hover:text-[#8BA888] transition-colors">
-                    {sess.title}
-                  </h3>
-                  <p className="text-xs text-[#7A7D73] mt-1 line-clamp-2 leading-relaxed">
-                    {sess.subtitle}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4 flex items-center justify-between text-xs text-[#2C3324] font-bold">
-                <span>立即開始</span>
-                <div className="w-6 h-6 rounded-full bg-[#F1F5EF] group-hover:bg-[#8BA888] group-hover:text-white flex items-center justify-center transition-colors">
-                  <Play className="w-3 h-3 fill-current ml-0.5" />
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 4.5 Audio Guides Spotlight: Guided support to listen to & act on */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold text-[#8BA888] bg-[#E9F0E8] px-2 py-0.5 rounded-md flex items-center gap-1 border border-[#C9D6C8]/60">
-                <Headphones className="w-3 h-3 text-[#8BA888]" />
-                音訊導引 · Audio Guides
-              </span>
-              <span className="text-[11px] text-[#7A7D73] font-medium hidden sm:inline">
-                Guided support to listen to & act on
-              </span>
-            </div>
-            <h2 className="text-base sm:text-lg font-bold text-[#2C3324]">音訊導引與即時行動</h2>
-            <p className="text-xs text-[#7A7D73]">臨床實證語音陪伴，引導你在聆聽中實踐心理調節動作</p>
-          </div>
-          <button
-            onClick={() => onTabChange('audio-guides')}
-            className="text-xs font-bold text-[#8BA888] hover:text-[#6d8c6a] flex items-center gap-1 cursor-pointer"
-          >
-            <span>瀏覽全部導引 ({AUDIO_GUIDES.length})</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {AUDIO_GUIDES.slice(0, 3).map((guide) => (
-            <div
-              key={guide.id}
-              onClick={() => onOpenAudioGuide ? onOpenAudioGuide(guide) : onTabChange('audio-guides')}
-              className="p-5 rounded-3xl bg-white border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-md transition-all text-left flex flex-col justify-between group cursor-pointer"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-[#E9F0E8] text-[#2C3324]">
-                    {guide.categoryLabel}
-                  </span>
-                  <span className="text-[11px] text-[#7A7D73] font-semibold flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-[#8BA888]" />
-                    {guide.durationMinutes} 分鐘
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-[#2C3324] group-hover:text-[#8BA888] transition-colors leading-snug">
-                    {guide.title}
-                  </h3>
-                  <p className="text-[11px] text-[#7A7D73] font-medium mt-0.5 line-clamp-1">
-                    {guide.titleEn}
-                  </p>
-                  <p className="text-xs text-[#5A6352] mt-1.5 line-clamp-2 leading-relaxed">
-                    {guide.subtitle}
-                  </p>
-                </div>
-                <div className="text-[11px] text-[#7A7D73] flex items-center gap-1 pt-1 border-t border-[#F1F5EF]">
-                  <UserCheck className="w-3 h-3 text-[#8BA888]" />
-                  <span>{guide.guideName} · {guide.guideRole.split('·')[0]}</span>
-                </div>
-              </div>
-
-              <div className="pt-4 flex items-center justify-between text-xs text-[#2C3324] font-bold">
-                <span className="text-[#8BA888]">聆聽並行動</span>
-                <div className="w-7 h-7 rounded-full bg-[#F1F5EF] group-hover:bg-[#8BA888] group-hover:text-white flex items-center justify-center transition-colors">
-                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 5. Guided Journals & Ambient Soundscapes 2-Col Grid */}
+      {/* 7. Guided Journals & Ambient Soundscapes 2-Col Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Guided Journals */}
         <div className="p-6 rounded-3xl bg-white border border-[#E8E6E0] hover:border-[#8BA888] shadow-xs space-y-4">
@@ -396,7 +428,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
           <div className="space-y-2">
             <button
-              onClick={() => onOpenJournal('journal-1')}
+              onClick={() => {
+                analytics.track('tool_open', { templateId: 'journal-1', type: 'journal' });
+                onOpenJournal('journal-1');
+              }}
               className="w-full p-3 rounded-2xl bg-[#FDFCF8] border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-xs transition-all text-left flex items-center justify-between cursor-pointer group"
             >
               <div className="flex items-center gap-3">
@@ -412,7 +447,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </button>
 
             <button
-              onClick={() => onOpenJournal('journal-7')}
+              onClick={() => {
+                analytics.track('tool_open', { templateId: 'journal-7', type: 'journal' });
+                onOpenJournal('journal-7');
+              }}
               className="w-full p-3 rounded-2xl bg-[#FDFCF8] border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-xs transition-all text-left flex items-center justify-between cursor-pointer group"
             >
               <div className="flex items-center gap-3">
@@ -428,7 +466,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </button>
 
             <button
-              onClick={() => onOpenJournal('journal-13')}
+              onClick={() => {
+                analytics.track('tool_open', { templateId: 'journal-13', type: 'journal' });
+                onOpenJournal('journal-13');
+              }}
               className="w-full p-3 rounded-2xl bg-[#FDFCF8] border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-xs transition-all text-left flex items-center justify-between cursor-pointer group"
             >
               <div className="flex items-center gap-3">
@@ -469,7 +510,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             {SOUNDSCAPES.slice(0, 4).map((snd) => (
               <button
                 key={snd.id}
-                onClick={() => onPlaySoundscape(snd)}
+                onClick={() => {
+                  analytics.track('tool_open', { soundId: snd.id, type: 'soundscape' });
+                  onPlaySoundscape(snd);
+                }}
                 className="p-3 rounded-2xl bg-[#FDFCF8] border border-[#E8E6E0] hover:border-[#8BA888] hover:shadow-xs transition-all text-left flex items-center justify-between cursor-pointer group"
               >
                 <div className="min-w-0">
@@ -487,7 +531,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         </div>
       </div>
 
-      {/* 6. 1-on-1 Professional Care Spotlight (Moved to Absolute Bottom) */}
+      {/* 8. 1-on-1 Professional Therapist Care Spotlight */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -548,13 +592,19 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
                 <div className="pt-2 border-t border-[#E8E6E0] flex items-center gap-2">
                   <button
-                    onClick={() => onOpenCoach(coach, 'chat')}
+                    onClick={() => {
+                      analytics.track('referral_click', { coachName: coach.name, mode: 'chat' });
+                      onOpenCoach(coach, 'chat');
+                    }}
                     className="flex-1 py-2 rounded-xl bg-[#F1F5EF] hover:bg-[#E9F0E8] text-[#3D4035] text-xs font-bold transition-colors cursor-pointer"
                   >
                     即時文字諮詢
                   </button>
                   <button
-                    onClick={() => onOpenCoach(coach, 'book')}
+                    onClick={() => {
+                      analytics.track('referral_click', { coachName: coach.name, mode: 'book' });
+                      onOpenCoach(coach, 'book');
+                    }}
                     className="flex-1 py-2 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
                     預約諮詢時段
@@ -578,13 +628,19 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             </div>
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <button
-                onClick={() => onOpenCoach(DEFAULT_CARE_CONSULTANT, 'chat')}
+                onClick={() => {
+                  analytics.track('referral_click', { coachName: DEFAULT_CARE_CONSULTANT.name, mode: 'chat' });
+                  onOpenCoach(DEFAULT_CARE_CONSULTANT, 'chat');
+                }}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#F1F5EF] hover:bg-[#E9F0E8] text-[#2C3324] text-xs font-bold transition-colors cursor-pointer"
               >
                 即時文字諮詢
               </button>
               <button
-                onClick={() => onOpenCoach(DEFAULT_CARE_CONSULTANT, 'book')}
+                onClick={() => {
+                  analytics.track('referral_click', { coachName: DEFAULT_CARE_CONSULTANT.name, mode: 'book' });
+                  onOpenCoach(DEFAULT_CARE_CONSULTANT, 'book');
+                }}
                 className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#8BA888] hover:bg-[#759672] text-white text-xs font-bold transition-all shadow-md shadow-[#8BA888]/20 cursor-pointer"
               >
                 預約諮詢時段
