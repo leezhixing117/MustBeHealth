@@ -1,0 +1,6 @@
+{
+  "name": "醫定要健康 - 心理與身心健康平台",
+  "description": "醫定要健康 數位心理健康平台中文版：提供 8 大主題專區分類列表 (Collections: 應對壓力與倦怠、化解焦慮與過度思考、深度睡眠、職場專注、人際界線、自信自愛、情緒調節、成長決策) 與即時困擾匹配、完整 43 篇引導式自我照顧日記庫 (Guided Journals)、完整音訊導引庫 (Audio Guides)、40 門臨床實證學習路徑 (Learning Paths)、40 種即時急救練習 (Rescue Sessions)、導引冥想庫、每日心情簽到、1對1專業心理教練與諮商預約及白噪音工具。",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
